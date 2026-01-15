@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -10,15 +11,61 @@ import {
     ExternalLink,
     Tag,
     Clock,
-    FileText
+    FileText,
+    Sparkles,
+    Loader2
 } from 'lucide-react';
 import { Licitacao } from '@/types/licitacao';
+import { ModalProposta } from './ModalProposta';
 
 interface LicitacaoCardProps {
     licitacao: Licitacao;
 }
 
 export function LicitacaoCard({ licitacao }: LicitacaoCardProps) {
+    const [modalAberta, setModalAberta] = useState(false);
+    const [proposta, setProposta] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const gerarProposta = async () => {
+        setModalAberta(true);
+        setLoading(true);
+        setError(null);
+        setProposta(null);
+
+        try {
+            const response = await fetch('/api/gerar-proposta', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    objeto: licitacao.objeto,
+                    orgao: licitacao.orgao,
+                    uf: licitacao.uf,
+                    municipio: licitacao.municipio,
+                    modalidade: licitacao.modalidade,
+                    valorEstimado: licitacao.valorEstimado,
+                    dataAbertura: licitacao.dataAbertura,
+                    categorias: licitacao.categorias,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setProposta(data.proposta);
+            } else {
+                setError(data.error || 'Erro ao gerar proposta');
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Erro de conexão');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const formatarData = (data: string | undefined) => {
         if (!data) return 'Não informada';
         try {
@@ -146,7 +193,19 @@ export function LicitacaoCard({ licitacao }: LicitacaoCardProps) {
                 </div>
             </div>
 
-            <div className="flex gap-3 pt-4 border-t border-gray-100">
+            <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
+                <button
+                    onClick={gerarProposta}
+                    disabled={loading}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                        <Sparkles className="w-4 h-4" />
+                    )}
+                    Gerar Proposta IA
+                </button>
                 {licitacao.linkEdital && (
                     <a
                         href={licitacao.linkEdital}
@@ -168,6 +227,15 @@ export function LicitacaoCard({ licitacao }: LicitacaoCardProps) {
                     Ver no PNCP
                 </a>
             </div>
+
+            <ModalProposta
+                isOpen={modalAberta}
+                onClose={() => setModalAberta(false)}
+                proposta={proposta}
+                loading={loading}
+                error={error}
+                licitacaoObjeto={licitacao.objeto}
+            />
         </div>
     );
 }
