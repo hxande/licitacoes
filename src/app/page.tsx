@@ -7,7 +7,7 @@ import { useLicitacoes } from '@/hooks/useLicitacoes';
 import { Building2, Target, Zap } from 'lucide-react';
 
 export default function Home() {
-  const { licitacoes, loading, error, meta, buscar, carregarMais } = useLicitacoes();
+  const { licitacoes, loading, error, meta, buscar, carregarMais, irParaPagina } = useLicitacoes();
 
   useEffect(() => {
     const today = new Date();
@@ -94,6 +94,7 @@ export default function Home() {
           error={error}
           meta={meta}
           onCarregarMais={carregarMais}
+          onIrParaPagina={irParaPagina}
         />
       </div>
 

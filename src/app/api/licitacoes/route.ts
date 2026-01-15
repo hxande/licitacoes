@@ -11,42 +11,73 @@ export async function GET(request: NextRequest) {
         const ufSigla = searchParams.get('uf') || undefined;
         const modalidade = searchParams.get('modalidade');
         const pagina = parseInt(searchParams.get('pagina') || '1');
-        const tamanhoPagina = parseInt(searchParams.get('tamanhoPagina') || '50');
+        const tamanhoPagina = parseInt(searchParams.get('tamanhoPagina') || '20');
         const apenasRelacionadasTI = searchParams.get('apenasRelacionadasTI') !== 'false';
-        const termoBusca = searchParams.get('termo')?.toLowerCase();
+        const termoBusca = searchParams.get('termo')?.toLowerCase().trim();
 
         const resultado = await buscarLicitacoesPNCP({
             dataInicial,
             dataFinal,
             ufSigla,
             codigoModalidadeContratacao: modalidade ? parseInt(modalidade) : undefined,
-            pagina,
-            tamanhoPagina,
+            pagina: 1, // Sempre buscar página 1 da API, paginação será feita localmente
+            tamanhoPagina: 50, // Limite máximo da API do PNCP
         });
 
         let licitacoes: Licitacao[] = resultado.data.map(transformPNCPToLicitacao);
 
+        // Aplicar filtro de TI
         if (apenasRelacionadasTI) {
             licitacoes = filtrarLicitacoesTI(licitacoes, true);
         }
 
-        if (termoBusca) {
-            licitacoes = licitacoes.filter(l =>
-                l.objeto.toLowerCase().includes(termoBusca) ||
-                l.orgao.toLowerCase().includes(termoBusca) ||
-                l.municipio?.toLowerCase().includes(termoBusca)
-            );
+        // Aplicar filtro por UF (a API do PNCP nem sempre filtra corretamente)
+        if (ufSigla) {
+            licitacoes = licitacoes.filter(l => l.uf === ufSigla);
         }
+
+        // Aplicar filtro por termo de busca (busca em múltiplos campos)
+        if (termoBusca) {
+            const termos = termoBusca.split(/\s+/).filter(t => t.length > 1);
+            licitacoes = licitacoes.filter(l => {
+                // Buscar apenas nos campos de texto, não nas categorias automáticas
+                const textoCompleto = [
+                    l.objeto,
+                    l.orgao,
+                    l.municipio || '',
+                    l.uf,
+                    l.situacao,
+                ].join(' ').toLowerCase();
+
+                // Todos os termos devem estar presentes
+                return termos.every(termo => textoCompleto.includes(termo));
+            });
+        }
+
+        // Ordenar por data de publicação (mais recentes primeiro)
+        licitacoes.sort((a, b) => {
+            const dataA = new Date(a.dataPublicacao).getTime();
+            const dataB = new Date(b.dataPublicacao).getTime();
+            return dataB - dataA;
+        });
+
+        // Calcular paginação local
+        const totalFiltrado = licitacoes.length;
+        const totalPaginas = Math.ceil(totalFiltrado / tamanhoPagina);
+        const inicio = (pagina - 1) * tamanhoPagina;
+        const fim = inicio + tamanhoPagina;
+        const licitacoesPaginadas = licitacoes.slice(inicio, fim);
 
         return NextResponse.json({
             success: true,
-            data: licitacoes,
+            data: licitacoesPaginadas,
             meta: {
-                paginaAtual: resultado.paginaAtual,
-                totalPaginas: resultado.totalPaginas,
+                paginaAtual: pagina,
+                totalPaginas: totalPaginas,
                 totalRegistros: resultado.totalRegistros,
-                totalFiltrado: licitacoes.length,
-                temMaisPaginas: resultado.temMaisPaginas,
+                totalFiltrado: totalFiltrado,
+                temMaisPaginas: pagina < totalPaginas,
+                itensPorPagina: tamanhoPagina,
             }
         });
     } catch (error) {
@@ -62,6 +93,7 @@ export async function GET(request: NextRequest) {
                     totalRegistros: 0,
                     totalFiltrado: 0,
                     temMaisPaginas: false,
+                    itensPorPagina: 20,
                 }
             },
             { status: 500 }

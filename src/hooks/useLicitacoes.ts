@@ -13,10 +13,14 @@ interface UseLicitacoesReturn {
         totalRegistros: number;
         totalFiltrado: number;
         temMaisPaginas: boolean;
+        itensPorPagina: number;
     };
     buscar: (filtros: FiltrosLicitacao) => Promise<void>;
+    irParaPagina: (pagina: number) => Promise<void>;
     carregarMais: () => Promise<void>;
 }
+
+const ITENS_POR_PAGINA = 20;
 
 export function useLicitacoes(): UseLicitacoesReturn {
     const [licitacoes, setLicitacoes] = useState<Licitacao[]>([]);
@@ -29,7 +33,24 @@ export function useLicitacoes(): UseLicitacoesReturn {
         totalRegistros: 0,
         totalFiltrado: 0,
         temMaisPaginas: false,
+        itensPorPagina: ITENS_POR_PAGINA,
     });
+
+    const fetchLicitacoes = useCallback(async (filtros: FiltrosLicitacao, pagina: number) => {
+        const params = new URLSearchParams();
+
+        if (filtros.termo) params.append('termo', filtros.termo);
+        if (filtros.uf) params.append('uf', filtros.uf);
+        if (filtros.modalidade) params.append('modalidade', filtros.modalidade);
+        if (filtros.dataInicio) params.append('dataInicial', filtros.dataInicio.replace(/-/g, ''));
+        if (filtros.dataFim) params.append('dataFinal', filtros.dataFim.replace(/-/g, ''));
+
+        params.append('pagina', String(pagina));
+        params.append('tamanhoPagina', String(ITENS_POR_PAGINA));
+
+        const response = await fetch(`/api/licitacoes?${params.toString()}`);
+        return response.json();
+    }, []);
 
     const buscar = useCallback(async (filtros: FiltrosLicitacao) => {
         setLoading(true);
@@ -37,19 +58,7 @@ export function useLicitacoes(): UseLicitacoesReturn {
         setFiltrosAtuais(filtros);
 
         try {
-            const params = new URLSearchParams();
-
-            if (filtros.termo) params.append('termo', filtros.termo);
-            if (filtros.uf) params.append('uf', filtros.uf);
-            if (filtros.modalidade) params.append('modalidade', filtros.modalidade);
-            if (filtros.dataInicio) params.append('dataInicial', filtros.dataInicio.replace(/-/g, ''));
-            if (filtros.dataFim) params.append('dataFinal', filtros.dataFim.replace(/-/g, ''));
-
-            params.append('pagina', '1');
-            params.append('tamanhoPagina', '50');
-
-            const response = await fetch(`/api/licitacoes?${params.toString()}`);
-            const data = await response.json();
+            const data = await fetchLicitacoes(filtros, 1);
 
             if (data.success) {
                 setLicitacoes(data.data);
@@ -64,38 +73,34 @@ export function useLicitacoes(): UseLicitacoesReturn {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [fetchLicitacoes]);
 
-    const carregarMais = useCallback(async () => {
-        if (!meta.temMaisPaginas || loading) return;
+    const irParaPagina = useCallback(async (pagina: number) => {
+        if (pagina < 1 || pagina > meta.totalPaginas || loading) return;
 
         setLoading(true);
+        setError(null);
 
         try {
-            const params = new URLSearchParams();
-
-            if (filtrosAtuais.termo) params.append('termo', filtrosAtuais.termo);
-            if (filtrosAtuais.uf) params.append('uf', filtrosAtuais.uf);
-            if (filtrosAtuais.modalidade) params.append('modalidade', filtrosAtuais.modalidade);
-            if (filtrosAtuais.dataInicio) params.append('dataInicial', filtrosAtuais.dataInicio.replace(/-/g, ''));
-            if (filtrosAtuais.dataFim) params.append('dataFinal', filtrosAtuais.dataFim.replace(/-/g, ''));
-
-            params.append('pagina', String(meta.paginaAtual + 1));
-            params.append('tamanhoPagina', '50');
-
-            const response = await fetch(`/api/licitacoes?${params.toString()}`);
-            const data = await response.json();
+            const data = await fetchLicitacoes(filtrosAtuais, pagina);
 
             if (data.success) {
-                setLicitacoes(prev => [...prev, ...data.data]);
+                setLicitacoes(data.data);
                 setMeta(data.meta);
+                // Scroll para o topo da lista
+                window.scrollTo({ top: 300, behavior: 'smooth' });
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Erro ao carregar mais');
+            setError(err instanceof Error ? err.message : 'Erro ao carregar página');
         } finally {
             setLoading(false);
         }
-    }, [filtrosAtuais, meta.paginaAtual, meta.temMaisPaginas, loading]);
+    }, [filtrosAtuais, meta.totalPaginas, loading, fetchLicitacoes]);
+
+    const carregarMais = useCallback(async () => {
+        if (!meta.temMaisPaginas || loading) return;
+        await irParaPagina(meta.paginaAtual + 1);
+    }, [meta.temMaisPaginas, meta.paginaAtual, loading, irParaPagina]);
 
     return {
         licitacoes,
@@ -103,6 +108,7 @@ export function useLicitacoes(): UseLicitacoesReturn {
         error,
         meta,
         buscar,
+        irParaPagina,
         carregarMais,
     };
 }
