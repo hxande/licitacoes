@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Filter, MapPin, Calendar, DollarSign, X } from 'lucide-react';
-import { FiltrosLicitacao, UFS, MODALIDADES } from '@/types/licitacao';
+import { Search, Filter, MapPin, Calendar, DollarSign, X, Tag } from 'lucide-react';
+import { FiltrosLicitacao, UFS, MODALIDADES, AREAS_ATUACAO } from '@/types/licitacao';
 
 interface FiltrosProps {
     onBuscar: (filtros: FiltrosLicitacao) => void;
@@ -14,6 +14,7 @@ export function Filtros({ onBuscar, loading }: FiltrosProps) {
         termo: '',
         uf: '',
         modalidade: '',
+        area: '',
         dataInicio: getDefaultDataInicio(),
         dataFim: getDefaultDataFim(),
     });
@@ -41,6 +42,7 @@ export function Filtros({ onBuscar, loading }: FiltrosProps) {
             termo: '',
             uf: '',
             modalidade: '',
+            area: '',
             dataInicio: getDefaultDataInicio(),
             dataFim: getDefaultDataFim(),
         };
@@ -89,7 +91,7 @@ export function Filtros({ onBuscar, loading }: FiltrosProps) {
             </button>
 
             {mostrarFiltrosAvancados && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-100">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t border-gray-100">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                             <MapPin className="w-4 h-4" />
@@ -123,6 +125,25 @@ export function Filtros({ onBuscar, loading }: FiltrosProps) {
                             {Object.entries(MODALIDADES).map(([id, nome]) => (
                                 <option key={id} value={id}>
                                     {nome}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                            <Tag className="w-4 h-4" />
+                            Área de Atuação
+                        </label>
+                        <select
+                            value={filtros.area}
+                            onChange={(e) => setFiltros({ ...filtros, area: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                        >
+                            <option value="">Todas as áreas</option>
+                            {AREAS_ATUACAO.map((area) => (
+                                <option key={area} value={area}>
+                                    {area}
                                 </option>
                             ))}
                         </select>

@@ -130,6 +130,9 @@ export function LicitacaoCard({ licitacao }: LicitacaoCardProps) {
                         <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600">
                             {licitacao.fonte}
                         </span>
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                            {licitacao.areaAtuacao}
+                        </span>
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 mb-2">
                         {licitacao.objeto}

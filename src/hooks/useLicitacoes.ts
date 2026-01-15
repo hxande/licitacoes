@@ -42,6 +42,7 @@ export function useLicitacoes(): UseLicitacoesReturn {
         if (filtros.termo) params.append('termo', filtros.termo);
         if (filtros.uf) params.append('uf', filtros.uf);
         if (filtros.modalidade) params.append('modalidade', filtros.modalidade);
+        if (filtros.area) params.append('area', filtros.area);
         if (filtros.dataInicio) params.append('dataInicial', filtros.dataInicio.replace(/-/g, ''));
         if (filtros.dataFim) params.append('dataFinal', filtros.dataFim.replace(/-/g, ''));
 

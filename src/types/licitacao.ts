@@ -12,6 +12,7 @@ export interface Licitacao {
     situacao: string;
     linkEdital?: string;
     fonte: 'PNCP' | 'COMPRASNET';
+    areaAtuacao: string;
     categorias?: string[];
 }
 
@@ -19,6 +20,7 @@ export interface FiltrosLicitacao {
     termo?: string;
     uf?: string;
     modalidade?: string;
+    area?: string;
     dataInicio?: string;
     dataFim?: string;
     valorMinimo?: number;
@@ -92,4 +94,20 @@ export const UFS = [
     'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
     'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
     'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+];
+
+export const AREAS_ATUACAO = [
+    'Tecnologia da Informação',
+    'Engenharia e Obras',
+    'Saúde',
+    'Educação',
+    'Alimentação',
+    'Veículos e Transporte',
+    'Limpeza e Conservação',
+    'Segurança',
+    'Mobiliário e Equipamentos',
+    'Comunicação e Marketing',
+    'Jurídico e Contábil',
+    'Recursos Humanos',
+    'Outros',
 ];

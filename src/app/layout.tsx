@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Licitações T.I. Brasil - Encontre Oportunidades",
-  description: "Aplicação para busca e filtro de licitações públicas na área de T.I. no Brasil.",
+  title: "Licitações Brasil - Encontre Oportunidades",
+  description: "Aplicação para busca e filtro de licitações públicas no Brasil.",
 };
 
 export default function RootLayout({

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { buscarLicitacoesPNCP, transformPNCPToLicitacao, filtrarLicitacoesTI } from '@/services/pncp';
+import { buscarLicitacoesPNCP, transformPNCPToLicitacao } from '@/services/pncp';
 import { Licitacao } from '@/types/licitacao';
 
 export async function GET(request: NextRequest) {
@@ -10,9 +10,9 @@ export async function GET(request: NextRequest) {
         const dataFinal = searchParams.get('dataFinal') || getDefaultDataFinal();
         const ufSigla = searchParams.get('uf') || undefined;
         const modalidade = searchParams.get('modalidade');
+        const area = searchParams.get('area');
         const pagina = parseInt(searchParams.get('pagina') || '1');
         const tamanhoPagina = parseInt(searchParams.get('tamanhoPagina') || '20');
-        const apenasRelacionadasTI = searchParams.get('apenasRelacionadasTI') !== 'false';
         const termoBusca = searchParams.get('termo')?.toLowerCase().trim();
 
         const resultado = await buscarLicitacoesPNCP({
@@ -26,14 +26,14 @@ export async function GET(request: NextRequest) {
 
         let licitacoes: Licitacao[] = resultado.data.map(transformPNCPToLicitacao);
 
-        // Aplicar filtro de TI
-        if (apenasRelacionadasTI) {
-            licitacoes = filtrarLicitacoesTI(licitacoes, true);
-        }
-
         // Aplicar filtro por UF (a API do PNCP nem sempre filtra corretamente)
         if (ufSigla) {
             licitacoes = licitacoes.filter(l => l.uf === ufSigla);
+        }
+
+        // Aplicar filtro por área de atuação
+        if (area) {
+            licitacoes = licitacoes.filter(l => l.areaAtuacao === area);
         }
 
         // Aplicar filtro por termo de busca (busca em múltiplos campos)

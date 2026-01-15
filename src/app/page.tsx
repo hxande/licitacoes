@@ -30,10 +30,10 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                Licitações T.I. Brasil
+                Licitações Brasil
               </h1>
               <p className="text-gray-500">
-                Encontre oportunidades de licitações em tecnologia
+                Encontre oportunidades de licitações públicas
               </p>
             </div>
           </div>
@@ -48,7 +48,7 @@ export default function Home() {
                 <Target className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{licitacoes.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{meta.totalFiltrado}</p>
                 <p className="text-sm text-gray-500">Licitações encontradas</p>
               </div>
             </div>
