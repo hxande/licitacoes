@@ -15,6 +15,7 @@ import {
     Sparkles,
     Loader2,
     FileSearch,
+    Heart,
 } from 'lucide-react';
 import { Licitacao } from '@/types/licitacao';
 import { ModalProposta } from './ModalProposta';
@@ -22,9 +23,11 @@ import { ModalAnaliseIA } from './ModalAnaliseIA';
 
 interface LicitacaoCardProps {
     licitacao: Licitacao;
+    isFavorito?: boolean;
+    onToggleFavorito?: (id: string) => void;
 }
 
-export function LicitacaoCard({ licitacao }: LicitacaoCardProps) {
+export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito }: LicitacaoCardProps) {
     const [modalAberta, setModalAberta] = useState(false);
     const [modalAnaliseAberta, setModalAnaliseAberta] = useState(false);
     const [proposta, setProposta] = useState<string | null>(null);
@@ -123,7 +126,7 @@ export function LicitacaoCard({ licitacao }: LicitacaoCardProps) {
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-100">
+        <div className={`bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 border ${isFavorito ? 'border-pink-300 ring-2 ring-pink-100' : 'border-gray-100'}`}>
             <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -141,6 +144,20 @@ export function LicitacaoCard({ licitacao }: LicitacaoCardProps) {
                         {licitacao.objeto}
                     </h3>
                 </div>
+                {/* Botão Favoritar */}
+                {onToggleFavorito && (
+                    <button
+                        onClick={() => onToggleFavorito(licitacao.id)}
+                        className={`p-2 rounded-full transition-all ${
+                            isFavorito
+                                ? 'bg-pink-100 text-pink-600 hover:bg-pink-200'
+                                : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-pink-500'
+                        }`}
+                        title={isFavorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                    >
+                        <Heart className={`w-5 h-5 ${isFavorito ? 'fill-current' : ''}`} />
+                    </button>
+                )}
             </div>
 
             {licitacao.categorias && licitacao.categorias.length > 0 && (

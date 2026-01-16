@@ -1,8 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { LicitacaoCard } from './LicitacaoCard';
 import { Licitacao } from '@/types/licitacao';
-import { FileQuestion, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { FileQuestion, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Heart, List } from 'lucide-react';
 
 interface ListaLicitacoesProps {
     licitacoes: Licitacao[];
@@ -18,6 +19,8 @@ interface ListaLicitacoesProps {
     };
     onCarregarMais: () => void;
     onIrParaPagina: (pagina: number) => void;
+    favoritos: Set<string>;
+    onToggleFavorito: (id: string) => void;
 }
 
 function Paginacao({
@@ -149,8 +152,19 @@ export function ListaLicitacoes({
     error,
     meta,
     onCarregarMais,
-    onIrParaPagina
+    onIrParaPagina,
+    favoritos,
+    onToggleFavorito,
 }: ListaLicitacoesProps) {
+    const [mostrarApenasFavoritos, setMostrarApenasFavoritos] = useState(false);
+
+    // Filtrar licitações se necessário
+    const licitacoesFiltradas = mostrarApenasFavoritos
+        ? licitacoes.filter(l => favoritos.has(l.id))
+        : licitacoes;
+
+    const totalFavoritos = licitacoes.filter(l => favoritos.has(l.id)).length;
+
     if (error) {
         return (
             <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
@@ -187,41 +201,95 @@ export function ListaLicitacoes({
 
     return (
         <div className={loading ? 'opacity-60 pointer-events-none' : ''}>
+            {/* Toggle Favoritos */}
             <div className="flex justify-between items-center mb-6">
-                <div>
+                <div className="flex items-center gap-4">
                     <p className="text-gray-600">
-                        Exibindo <span className="font-semibold text-gray-900">{inicio}-{fim}</span> de{' '}
-                        <span className="font-semibold text-gray-900">{meta.totalFiltrado}</span> licitações
-                        {meta.totalRegistros > meta.totalFiltrado && (
-                            <span className="text-gray-400"> (filtradas de {meta.totalRegistros} no período)</span>
+                        {mostrarApenasFavoritos ? (
+                            <>
+                                Exibindo <span className="font-semibold text-pink-600">{licitacoesFiltradas.length}</span> licitações favoritas
+                            </>
+                        ) : (
+                            <>
+                                Exibindo <span className="font-semibold text-gray-900">{inicio}-{fim}</span> de{' '}
+                                <span className="font-semibold text-gray-900">{meta.totalFiltrado}</span> licitações
+                                {meta.totalRegistros > meta.totalFiltrado && (
+                                    <span className="text-gray-400"> (filtradas de {meta.totalRegistros} no período)</span>
+                                )}
+                            </>
                         )}
                     </p>
                 </div>
-                {loading && (
-                    <div className="flex items-center gap-2 text-blue-600">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span className="text-sm">Carregando...</span>
-                    </div>
-                )}
+                <div className="flex items-center gap-3">
+                    {loading && (
+                        <div className="flex items-center gap-2 text-blue-600">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span className="text-sm">Carregando...</span>
+                        </div>
+                    )}
+                    {/* Botão Ver Favoritos */}
+                    <button
+                        onClick={() => setMostrarApenasFavoritos(!mostrarApenasFavoritos)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                            mostrarApenasFavoritos
+                                ? 'bg-pink-600 text-white hover:bg-pink-700'
+                                : 'bg-white border border-gray-200 text-gray-700 hover:bg-pink-50 hover:border-pink-300 hover:text-pink-600'
+                        }`}
+                    >
+                        <Heart className={`w-4 h-4 ${mostrarApenasFavoritos ? 'fill-current' : ''}`} />
+                        {mostrarApenasFavoritos ? 'Ver Todas' : `Favoritas (${totalFavoritos})`}
+                    </button>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {licitacoes.map((licitacao) => (
-                    <LicitacaoCard key={licitacao.id} licitacao={licitacao} />
-                ))}
-            </div>
+            {/* Lista vazia de favoritos */}
+            {mostrarApenasFavoritos && licitacoesFiltradas.length === 0 && (
+                <div className="bg-pink-50 rounded-xl p-12 text-center border border-pink-100">
+                    <Heart className="w-16 h-16 text-pink-300 mx-auto mb-4" />
+                    <p className="text-pink-700 font-medium text-lg">Nenhuma licitação favoritada</p>
+                    <p className="text-pink-500 text-sm mt-2">
+                        Clique no coração ❤️ em qualquer licitação para adicioná-la aos favoritos
+                    </p>
+                    <button
+                        onClick={() => setMostrarApenasFavoritos(false)}
+                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition text-sm font-medium"
+                    >
+                        <List className="w-4 h-4" />
+                        Ver Todas as Licitações
+                    </button>
+                </div>
+            )}
 
-            <Paginacao
-                paginaAtual={meta.paginaAtual}
-                totalPaginas={meta.totalPaginas}
-                onIrParaPagina={onIrParaPagina}
-                loading={loading}
-            />
+            {/* Grid de licitações */}
+            {(!mostrarApenasFavoritos || licitacoesFiltradas.length > 0) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {licitacoesFiltradas.map((licitacao) => (
+                        <LicitacaoCard
+                            key={licitacao.id}
+                            licitacao={licitacao}
+                            isFavorito={favoritos.has(licitacao.id)}
+                            onToggleFavorito={onToggleFavorito}
+                        />
+                    ))}
+                </div>
+            )}
 
-            {meta.totalPaginas > 1 && (
-                <p className="text-center text-sm text-gray-500 mt-4">
-                    Página {meta.paginaAtual} de {meta.totalPaginas}
-                </p>
+            {/* Paginação - esconde quando mostra só favoritos */}
+            {!mostrarApenasFavoritos && (
+                <>
+                    <Paginacao
+                        paginaAtual={meta.paginaAtual}
+                        totalPaginas={meta.totalPaginas}
+                        onIrParaPagina={onIrParaPagina}
+                        loading={loading}
+                    />
+
+                    {meta.totalPaginas > 1 && (
+                        <p className="text-center text-sm text-gray-500 mt-4">
+                            Página {meta.paginaAtual} de {meta.totalPaginas}
+                        </p>
+                    )}
+                </>
             )}
         </div>
     );
