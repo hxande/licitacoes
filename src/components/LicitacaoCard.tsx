@@ -14,11 +14,11 @@ import {
     FileText,
     Sparkles,
     Loader2,
-    ClipboardList,
+    FileSearch,
 } from 'lucide-react';
 import { Licitacao } from '@/types/licitacao';
 import { ModalProposta } from './ModalProposta';
-import { ModalChecklist } from './ModalChecklist';
+import { ModalAnaliseIA } from './ModalAnaliseIA';
 
 interface LicitacaoCardProps {
     licitacao: Licitacao;
@@ -26,7 +26,7 @@ interface LicitacaoCardProps {
 
 export function LicitacaoCard({ licitacao }: LicitacaoCardProps) {
     const [modalAberta, setModalAberta] = useState(false);
-    const [modalChecklistAberta, setModalChecklistAberta] = useState(false);
+    const [modalAnaliseAberta, setModalAnaliseAberta] = useState(false);
     const [proposta, setProposta] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -210,34 +210,23 @@ export function LicitacaoCard({ licitacao }: LicitacaoCardProps) {
                     ) : (
                         <Sparkles className="w-4 h-4" />
                     )}
-                    Gerar Proposta IA
+                    Gerar Proposta
                 </button>
                 <button
-                    onClick={() => setModalChecklistAberta(true)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                    onClick={() => setModalAnaliseAberta(true)}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition text-sm font-medium"
                 >
-                    <ClipboardList className="w-4 h-4" />
-                    Checklist Docs
+                    <FileSearch className="w-4 h-4" />
+                    Analisar com IA
                 </button>
-                {licitacao.linkEdital && (
-                    <a
-                        href={licitacao.linkEdital}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-                    >
-                        <ExternalLink className="w-4 h-4" />
-                        Ver Edital
-                    </a>
-                )}
                 <a
                     href={`https://pncp.gov.br/app/editais/${licitacao.cnpjOrgao}/${licitacao.id.split('-').slice(1).join('/')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition text-sm font-medium"
+                    className="flex items-center justify-center gap-2 px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition text-sm font-medium"
                 >
-                    <FileText className="w-4 h-4" />
-                    Ver no PNCP
+                    <ExternalLink className="w-4 h-4" />
+                    PNCP
                 </a>
             </div>
 
@@ -250,11 +239,12 @@ export function LicitacaoCard({ licitacao }: LicitacaoCardProps) {
                 licitacaoObjeto={licitacao.objeto}
             />
 
-            <ModalChecklist
-                isOpen={modalChecklistAberta}
-                onClose={() => setModalChecklistAberta(false)}
-                licitacao={licitacao}
-            />
+            {modalAnaliseAberta && (
+                <ModalAnaliseIA
+                    licitacao={licitacao}
+                    onClose={() => setModalAnaliseAberta(false)}
+                />
+            )}
         </div>
     );
 }
