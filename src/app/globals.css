@@ -26,3 +26,22 @@
     overflow: hidden;
   }
 }
+
+/* Estilos de impressão para Checklist */
+@media print {
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Esconder sombras durante impressão */
+  [class*="shadow-"] {
+    box-shadow: none !important;
+  }
+
+  /* Forçar quebra de página se necessário */
+  [class*="border"][class*="rounded-lg"] {
+    break-inside: avoid;
+  }
+}

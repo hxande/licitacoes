@@ -13,10 +13,12 @@ import {
     Clock,
     FileText,
     Sparkles,
-    Loader2
+    Loader2,
+    ClipboardList,
 } from 'lucide-react';
 import { Licitacao } from '@/types/licitacao';
 import { ModalProposta } from './ModalProposta';
+import { ModalChecklist } from './ModalChecklist';
 
 interface LicitacaoCardProps {
     licitacao: Licitacao;
@@ -24,6 +26,7 @@ interface LicitacaoCardProps {
 
 export function LicitacaoCard({ licitacao }: LicitacaoCardProps) {
     const [modalAberta, setModalAberta] = useState(false);
+    const [modalChecklistAberta, setModalChecklistAberta] = useState(false);
     const [proposta, setProposta] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -209,6 +212,13 @@ export function LicitacaoCard({ licitacao }: LicitacaoCardProps) {
                     )}
                     Gerar Proposta IA
                 </button>
+                <button
+                    onClick={() => setModalChecklistAberta(true)}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                >
+                    <ClipboardList className="w-4 h-4" />
+                    Checklist Docs
+                </button>
                 {licitacao.linkEdital && (
                     <a
                         href={licitacao.linkEdital}
@@ -238,6 +248,12 @@ export function LicitacaoCard({ licitacao }: LicitacaoCardProps) {
                 loading={loading}
                 error={error}
                 licitacaoObjeto={licitacao.objeto}
+            />
+
+            <ModalChecklist
+                isOpen={modalChecklistAberta}
+                onClose={() => setModalChecklistAberta(false)}
+                licitacao={licitacao}
             />
         </div>
     );
