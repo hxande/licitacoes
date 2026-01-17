@@ -89,10 +89,10 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito,
 
     return (
         <div className={`bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 border relative ${match && match.percentual >= 80
-                ? 'border-green-400 ring-2 ring-green-100'
-                : isFavorito
-                    ? 'border-pink-300 ring-2 ring-pink-100'
-                    : 'border-gray-100'
+            ? 'border-green-400 ring-2 ring-green-100'
+            : isFavorito
+                ? 'border-pink-300 ring-2 ring-pink-100'
+                : 'border-gray-100'
             }`}>
             {/* Badge de Match */}
             {match && match.percentual >= 50 && (
@@ -114,7 +114,10 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito,
                             {licitacao.areaAtuacao}
                         </span>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 mb-2">
+                    <h3
+                        className="text-lg font-semibold text-gray-900 line-clamp-2 mb-2 cursor-default"
+                        title={licitacao.objeto}
+                    >
                         {licitacao.objeto}
                     </h3>
                 </div>
@@ -123,8 +126,8 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito,
                     <button
                         onClick={() => onToggleFavorito(licitacao.id)}
                         className={`p-2 rounded-full transition-all ${isFavorito
-                                ? 'bg-pink-100 text-pink-600 hover:bg-pink-200'
-                                : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-pink-500'
+                            ? 'bg-pink-100 text-pink-600 hover:bg-pink-200'
+                            : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-pink-500'
                             }`}
                         title={isFavorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
                     >
@@ -197,7 +200,7 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito,
                     <FileSearch className="w-4 h-4" />
                     Analisar Edital
                 </button>
-                {perfil && match && match.percentual >= 40 && (
+                {perfil && match && match.percentual >= 60 && (
                     <button
                         onClick={() => setModalMatchIAAberta(true)}
                         className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 transition text-sm font-medium"

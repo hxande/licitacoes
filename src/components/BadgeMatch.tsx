@@ -74,7 +74,7 @@ export function BadgeMatch({ match, size = 'md', showDestaques = false, onAnalis
                     <span>{percentual}%</span>
                     {size !== 'sm' && <span className="font-medium opacity-90">match</span>}
                 </div>
-                {onAnaliseIA && size !== 'sm' && percentual >= 40 && (
+                {onAnaliseIA && size !== 'sm' && percentual >= 60 && (
                     <button
                         onClick={onAnaliseIA}
                         className="p-1.5 bg-purple-100 hover:bg-purple-200 text-purple-600 rounded-full transition-colors"

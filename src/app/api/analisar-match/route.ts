@@ -99,15 +99,67 @@ O JSON deve seguir EXATAMENTE esta estrutura:
   "dicasParticipacao": ["<dica 1>", "<dica 2>", ...]
 }
 
-Critérios para a análise:
-- Excelente (80-100%): Empresa altamente qualificada, alta probabilidade de sucesso
-- Bom (60-79%): Empresa qualificada com alguns gaps menores
-- Moderado (40-59%): Empresa parcialmente qualificada, precisa de preparação
-- Baixo (0-39%): Empresa não recomendada para esta licitação
+CRITÉRIOS PARA ANÁLISE DE COMPATIBILIDADE:
 
-Analise semanticamente o objeto da licitação e compare com as capacidades da empresa.
-Identifique requisitos técnicos implícitos no objeto.
-Considere porte da empresa, certificações, área de atuação e valor.`;
+1. ÁREAS DE ATUAÇÃO (Peso: 20%)
+   - Verifique se a área de atuação da licitação está nas áreas que a empresa trabalha
+   - Se não houver match exato, considere áreas relacionadas ou complementares
+   - Áreas próximas recebem pontuação parcial
+
+2. CAPACIDADES TÉCNICAS (Peso: 40% - MAIS IMPORTANTE)
+   - Analise SEMANTICAMENTE o objeto da licitação
+   - Compare com as capacidades técnicas da empresa
+   - Procure por sinônimos, termos relacionados e tecnologias similares
+   - Considere capacidades complementares que possam ser relevantes
+   - Identifique requisitos técnicos implícitos no objeto
+   - Uma empresa com capacidades parcialmente relacionadas ainda pode ter match moderado
+
+3. ESTADOS DE ATUAÇÃO (Peso: 15%)
+   - Verifique se a empresa atua no estado da licitação
+   - Se não especificado, considere que atua em todo Brasil
+   - Licitações fora dos estados preferenciais recebem pontuação menor mas não são eliminadas
+
+4. PORTE DA EMPRESA (Peso: 10%)
+   - MEI/ME/EPP podem ter vantagens em licitações específicas
+   - Grandes empresas são necessárias para projetos de grande porte
+   - Considere a complexidade e escala do projeto
+
+5. FAIXA DE VALOR (Peso: 10%)
+   - Valores muito acima da faixa usual não eliminam, mas requerem parceiros/consórcio
+   - Valores muito abaixo podem indicar baixa rentabilidade
+   - Considere a margem de tolerância (até 2x)
+
+6. MODALIDADE (Peso: 5%)
+   - Modalidades preferidas são um plus, mas não eliminam outras
+   - Algumas modalidades são mais simples (Pregão) que outras (Concorrência)
+
+NÍVEIS DE COMPATIBILIDADE:
+- Excelente (80-100%): Empresa altamente qualificada, alta probabilidade de sucesso
+  * Forte match em capacidades técnicas
+  * Área de atuação compatível
+  * Dentro dos parâmetros preferenciais (estado, valor, modalidade)
+  
+- Bom (60-79%): Empresa qualificada com alguns gaps menores
+  * Bom match em capacidades, mas pode faltar algo
+  * Área relacionada ou parcialmente compatível
+  * Alguns parâmetros fora do ideal mas viáveis
+  
+- Moderado (40-59%): Empresa parcialmente qualificada, precisa de preparação
+  * Match parcial em capacidades
+  * Área tangencialmente relacionada
+  * Vários parâmetros fora do ideal
+  * Pode participar com parceiros ou investimento em capacitação
+  
+- Baixo (0-39%): Empresa não recomendada para esta licitação
+  * Pouco ou nenhum match em capacidades
+  * Área muito diferente
+  * Parâmetros incompatíveis
+
+IMPORTANTE:
+- NÃO seja eliminatório demais - considere possibilidades de parceria, consórcio, capacitação
+- Analise o contexto completo, não apenas palavras-chave exatas
+- Considere sinônimos e termos relacionados
+- Seja realista mas não descarte oportunidades válidas`;
 
         // Prompt do usuário
         const userPrompt = `Analise a compatibilidade entre esta empresa e licitação:
@@ -119,8 +171,9 @@ Considere porte da empresa, certificações, área de atuação e valor.`;
 - **Áreas de Atuação:** ${perfil.areasAtuacao.join(', ') || 'Não especificadas'}
 - **Capacidades Técnicas:** ${perfil.capacidades.join(', ') || 'Não especificadas'}
 - **Certificações:** ${perfil.certificacoes.join(', ') || 'Nenhuma'}
-- **Estados que atua:** ${perfil.estadosAtuacao.join(', ') || 'Todo Brasil'}
+- **Estados que atua:** ${perfil.estadosAtuacao.length > 0 ? perfil.estadosAtuacao.join(', ') : 'Todo Brasil'}
 - **Faixa de valor:** ${valorMinFormatado} a ${valorMaxFormatado}
+- **Modalidades preferidas:** ${perfil.modalidadesPreferidas.length > 0 ? 'Especificadas' : 'Todas'}
 
 ## LICITAÇÃO
 - **Órgão:** ${licitacao.orgao}
@@ -133,7 +186,7 @@ Considere porte da empresa, certificações, área de atuação e valor.`;
 **OBJETO DA LICITAÇÃO:**
 ${licitacao.objeto}
 
-Retorne APENAS o JSON com a análise.`;
+Analise cuidadosamente todos os fatores acima e retorne APENAS o JSON com a análise.`;
 
         // Invocar modelo
         const response = await model.invoke([
