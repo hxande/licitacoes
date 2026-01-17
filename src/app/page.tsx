@@ -2,21 +2,34 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Filtros } from '@/components/Filtros';
 import { ListaLicitacoes } from '@/components/ListaLicitacoes';
 import { ModalPerfilEmpresa } from '@/components/ModalPerfilEmpresa';
 import { useLicitacoes } from '@/hooks/useLicitacoes';
 import { useFavoritos } from '@/hooks/useFavoritos';
 import { usePerfilEmpresa } from '@/hooks/usePerfilEmpresa';
-import { Building2, Target, Zap, Heart, BarChart3, UserCog, Sparkles, Kanban } from 'lucide-react';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { Building2, Target, Zap, Heart, BarChart3, UserCog, Sparkles, Kanban, User, Loader2 } from 'lucide-react';
 
 export default function Home() {
+  const router = useRouter();
+  const { usuario, carregando: carregandoAuth, autenticado } = useAuthContext();
   const { licitacoes, loading, error, meta, buscar, carregarMais, irParaPagina } = useLicitacoes();
   const { favoritos, toggleFavorito, totalFavoritos } = useFavoritos();
   const { perfil, salvarPerfil, limparPerfil, calcularMatch, temPerfil, loaded } = usePerfilEmpresa();
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
 
+  // Redirecionar para login se não autenticado
   useEffect(() => {
+    if (!carregandoAuth && !autenticado) {
+      router.push('/login');
+    }
+  }, [carregandoAuth, autenticado, router]);
+
+  useEffect(() => {
+    if (!autenticado) return;
+
     const today = new Date();
     const startDate = new Date();
     startDate.setDate(today.getDate() - 15);
@@ -25,7 +38,7 @@ export default function Home() {
       dataInicio: startDate.toISOString().split('T')[0],
       dataFim: today.toISOString().split('T')[0],
     });
-  }, [buscar]);
+  }, [buscar, autenticado]);
 
   // Calcular matches para todas as licitações
   const licitacoesComMatch = licitacoes.map(l => ({
@@ -35,6 +48,15 @@ export default function Home() {
 
   // Contar licitações com bom match
   const licitacoesComBomMatch = licitacoesComMatch.filter(l => l.match && l.match.percentual >= 60).length;
+
+  // Loading de autenticação
+  if (carregandoAuth || !autenticado) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -58,8 +80,8 @@ export default function Home() {
               <button
                 onClick={() => setModalPerfilAberto(true)}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition text-sm font-medium shadow-sm ${temPerfil
-                    ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
                   }`}
               >
                 <UserCog className="w-4 h-4" />
@@ -78,6 +100,19 @@ export default function Home() {
               >
                 <BarChart3 className="w-4 h-4" />
                 Dashboard
+              </Link>
+              {/* Botão Perfil Usuário */}
+              <Link
+                href="/perfil"
+                className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                title="Meu Perfil"
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                  {usuario?.nome?.charAt(0).toUpperCase() || usuario?.email?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <span className="text-sm text-gray-700 font-medium hidden sm:block">
+                  {usuario?.nome?.split(' ')[0] || 'Perfil'}
+                </span>
               </Link>
             </div>
           </div>

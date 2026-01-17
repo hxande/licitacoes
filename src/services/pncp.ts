@@ -173,12 +173,22 @@ export async function buscarLicitacoesPNCP(params: {
             });
 
             if (response.ok) {
-                const rawData = await response.json();
-                return {
-                    data: rawData.data || [],
-                    totalRegistros: rawData.totalRegistros || 0,
-                    totalPaginas: rawData.totalPaginas || 1,
-                };
+                const text = await response.text();
+                if (!text || text.trim() === '') {
+                    console.warn(`[PNCP] Empty response for modalidade ${modalidade}`);
+                    return { data: [], totalRegistros: 0, totalPaginas: 1 };
+                }
+                try {
+                    const rawData = JSON.parse(text);
+                    return {
+                        data: rawData.data || [],
+                        totalRegistros: rawData.totalRegistros || 0,
+                        totalPaginas: rawData.totalPaginas || 1,
+                    };
+                } catch (parseError) {
+                    console.error(`[PNCP] JSON parse error for modalidade ${modalidade}:`, parseError);
+                    return { data: [], totalRegistros: 0, totalPaginas: 1 };
+                }
             }
             console.error(`[PNCP] Response ${response.status} for modalidade ${modalidade}`);
             return { data: [], totalRegistros: 0, totalPaginas: 1 };
