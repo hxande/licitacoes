@@ -16,6 +16,26 @@ import {
     Calendar,
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useAlertas } from '@/hooks/useAlertas';
+
+function AlertResumo() {
+    const { alertas } = useAlertas();
+
+    return (
+        <div className="mt-6 p-4 bg-white rounded-lg border border-gray-100">
+            <div className="flex items-center justify-between">
+                <div>
+                    <div className="text-sm text-gray-600">Meus Alertas</div>
+                    <div className="text-lg font-semibold text-gray-900">{alertas.length} ativos</div>
+                    <p className="text-xs text-gray-500 mt-1">Gerencie alertas personalizados para novas licitações.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Link href="/perfil/alertas" className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Ver meus alertas</Link>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function PerfilPage() {
     const router = useRouter();
@@ -124,8 +144,8 @@ export default function PerfilPage() {
                 {mensagem && (
                     <div
                         className={`mb-6 px-4 py-3 rounded-lg ${mensagem.tipo === 'sucesso'
-                                ? 'bg-green-50 text-green-700 border border-green-200'
-                                : 'bg-red-50 text-red-700 border border-red-200'
+                            ? 'bg-green-50 text-green-700 border border-green-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
                             }`}
                     >
                         {mensagem.texto}
@@ -297,13 +317,8 @@ export default function PerfilPage() {
                                 </label>
                             </div>
 
-                            {/* Aviso de alertas futuros */}
-                            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                                <p className="text-blue-800 text-sm">
-                                    <strong>Em breve:</strong> Você poderá criar alertas personalizados
-                                    por palavras-chave, região, valor e área de atuação.
-                                </p>
-                            </div>
+                            {/* Resumo rápido de alertas */}
+                            <AlertResumo />
                         </div>
 
                         {/* Botão Salvar */}
