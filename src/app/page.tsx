@@ -6,11 +6,12 @@ import { useRouter } from 'next/navigation';
 import { Filtros } from '@/components/Filtros';
 import { ListaLicitacoes } from '@/components/ListaLicitacoes';
 import { ModalPerfilEmpresa } from '@/components/ModalPerfilEmpresa';
+import { ModalResumoEdital } from '@/components/ModalResumoEdital';
 import { useLicitacoes } from '@/hooks/useLicitacoes';
 import { useFavoritos } from '@/hooks/useFavoritos';
 import { usePerfilEmpresa } from '@/hooks/usePerfilEmpresa';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { Building2, Target, Zap, Heart, BarChart3, UserCog, Sparkles, Kanban, User, Loader2 } from 'lucide-react';
+import { Building2, Target, Zap, Heart, BarChart3, UserCog, Sparkles, Kanban, User, Loader2, FileUp } from 'lucide-react';
 
 export default function Home() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function Home() {
   const { favoritos, toggleFavorito, totalFavoritos } = useFavoritos();
   const { perfil, salvarPerfil, limparPerfil, calcularMatch, temPerfil, loaded } = usePerfilEmpresa();
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
+  const [modalResumoAberto, setModalResumoAberto] = useState(false);
 
   // Redirecionar para login se não autenticado
   useEffect(() => {
@@ -77,6 +79,13 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setModalResumoAberto(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:from-cyan-600 hover:to-blue-600 transition text-sm font-medium shadow-sm"
+              >
+                <FileUp className="w-4 h-4" />
+                Resumir PDF
+              </button>
               <button
                 onClick={() => setModalPerfilAberto(true)}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition text-sm font-medium shadow-sm ${temPerfil
@@ -258,6 +267,12 @@ export default function Home() {
         perfilAtual={perfil}
         onSalvar={salvarPerfil}
         onLimpar={limparPerfil}
+      />
+
+      {/* Modal de Resumo de Edital */}
+      <ModalResumoEdital
+        isOpen={modalResumoAberto}
+        onClose={() => setModalResumoAberto(false)}
       />
     </div>
   );
