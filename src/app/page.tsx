@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { Filtros } from '@/components/Filtros';
 import { ListaLicitacoes } from '@/components/ListaLicitacoes';
 import { useLicitacoes } from '@/hooks/useLicitacoes';
 import { useFavoritos } from '@/hooks/useFavoritos';
-import { Building2, Target, Zap, Heart } from 'lucide-react';
+import { Building2, Target, Zap, Heart, BarChart3 } from 'lucide-react';
 
 export default function Home() {
   const { licitacoes, loading, error, meta, buscar, carregarMais, irParaPagina } = useLicitacoes();
@@ -26,18 +27,27 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <header className="bg-white shadow-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-600 rounded-xl">
-              <Building2 className="w-8 h-8 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-600 rounded-xl">
+                <Building2 className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Licitações Brasil
+                </h1>
+                <p className="text-gray-500">
+                  Encontre oportunidades de licitações públicas
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Licitações Brasil
-              </h1>
-              <p className="text-gray-500">
-                Encontre oportunidades de licitações públicas
-              </p>
-            </div>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition text-sm font-medium shadow-sm"
+            >
+              <BarChart3 className="w-4 h-4" />
+              Dashboard
+            </Link>
           </div>
         </div>
       </header>
