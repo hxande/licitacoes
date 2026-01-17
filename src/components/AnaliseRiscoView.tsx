@@ -42,11 +42,13 @@ function extrairDadosId(id: string): { cnpj: string; ano: string; sequencial: st
 
 export function AnaliseRiscoView({ licitacao }: AnaliseRiscoViewProps) {
     const [analise, setAnalise] = useState<AnaliseRisco | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+    const [iniciado, setIniciado] = useState(false);
 
     const analisarRisco = useCallback(async () => {
+        setIniciado(true);
         setLoading(true);
         setError(null);
 
@@ -86,10 +88,6 @@ export function AnaliseRiscoView({ licitacao }: AnaliseRiscoViewProps) {
             setLoading(false);
         }
     }, [licitacao]);
-
-    useEffect(() => {
-        analisarRisco();
-    }, [analisarRisco]);
 
     const toggleItem = (id: string) => {
         const newSet = new Set(expandedItems);
@@ -134,6 +132,30 @@ export function AnaliseRiscoView({ licitacao }: AnaliseRiscoViewProps) {
                 return <AlertTriangle className="w-5 h-5 text-red-500" />;
         }
     };
+
+    // Tela inicial - aguarda clique para analisar
+    if (!iniciado) {
+        return (
+            <div className="text-center py-12">
+                <div className="w-20 h-20 bg-gradient-to-br from-orange-100 to-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Shield className="w-10 h-10 text-orange-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                    Análise de Risco
+                </h3>
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                    A IA irá analisar cláusulas, requisitos, prazos e identificar potenciais riscos nesta licitação.
+                </p>
+                <button
+                    onClick={analisarRisco}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 transition font-medium shadow-lg"
+                >
+                    <Shield className="w-5 h-5" />
+                    Analisar Riscos com IA
+                </button>
+            </div>
+        );
+    }
 
     if (loading) {
         return (

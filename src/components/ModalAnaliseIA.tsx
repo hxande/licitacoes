@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { X, FileSearch, Shield, ClipboardList, Loader2, Sparkles, AlertCircle, List } from 'lucide-react';
+import { X, FileSearch, Shield, ClipboardList, Loader2, Sparkles, AlertCircle, List, FileText } from 'lucide-react';
 import { Licitacao } from '@/types/licitacao';
 import { Checklist, DocumentoChecklist, DOCUMENTOS_COMUNS, StatusDocumento } from '@/types/checklist';
 import { AnaliseRiscoView } from './AnaliseRiscoView';
@@ -10,10 +10,10 @@ import { ChecklistView } from './ChecklistView';
 interface ModalAnaliseIAProps {
     licitacao: Licitacao;
     onClose: () => void;
-    abaInicial?: 'risco' | 'checklist';
+    abaInicial?: 'risco' | 'checklist' | 'proposta';
 }
 
-type Aba = 'risco' | 'checklist';
+type Aba = 'risco' | 'checklist' | 'proposta';
 
 const STORAGE_KEY = 'licitacoes_checklists';
 
@@ -49,11 +49,51 @@ function extrairDadosId(id: string): { cnpj: string; ano: string; sequencial: st
 export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: ModalAnaliseIAProps) {
     const [abaAtiva, setAbaAtiva] = useState<Aba>(abaInicial);
     const [checklist, setChecklist] = useState<Checklist | null>(null);
-    const [checklistEtapa, setChecklistEtapa] = useState<'analisando' | 'criar' | 'visualizar'>('analisando');
+    const [checklistEtapa, setChecklistEtapa] = useState<'analisando' | 'criar' | 'visualizar'>('criar');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    
+    // Estados para aba de proposta
+    const [proposta, setProposta] = useState<string | null>(null);
+    const [propostaLoading, setPropostaLoading] = useState(false);
+    const [propostaError, setPropostaError] = useState<string | null>(null);
 
-    // Carregar checklist existente ou iniciar análise automática quando muda para aba checklist
+    // Função para gerar proposta
+    const gerarProposta = useCallback(async () => {
+        setPropostaLoading(true);
+        setPropostaError(null);
+
+        try {
+            const response = await fetch('/api/gerar-proposta', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    objeto: licitacao.objeto,
+                    orgao: licitacao.orgao,
+                    uf: licitacao.uf,
+                    municipio: licitacao.municipio,
+                    modalidade: licitacao.modalidade,
+                    valorEstimado: licitacao.valorEstimado,
+                    dataAbertura: licitacao.dataAbertura,
+                    categorias: licitacao.categorias,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setProposta(data.proposta);
+            } else {
+                setPropostaError(data.error || 'Erro ao gerar proposta');
+            }
+        } catch (err) {
+            setPropostaError(err instanceof Error ? err.message : 'Erro de conexão');
+        } finally {
+            setPropostaLoading(false);
+        }
+    }, [licitacao]);
+
+    // Carregar checklist existente quando muda para aba checklist (mas NÃO inicia análise automática)
     useEffect(() => {
         if (abaAtiva !== 'checklist') return;
 
@@ -72,10 +112,8 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
                 console.error('Erro ao carregar checklists:', e);
             }
         }
-        // Não encontrou checklist existente - iniciar análise automática
-        if (!checklist) {
-            analisarComIA();
-        }
+        // Não encontrou checklist existente - mostrar tela de criar (aguarda clique)
+        setChecklistEtapa('criar');
     }, [abaAtiva, licitacao.id]);
 
     // Análise automática com IA
@@ -323,7 +361,17 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
                             }`}
                     >
                         <ClipboardList className="w-5 h-5" />
-                        Checklist de Documentos
+                        Checklist
+                    </button>
+                    <button
+                        onClick={() => setAbaAtiva('proposta')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 font-medium transition-colors ${abaAtiva === 'proposta'
+                                ? 'text-purple-600 bg-white border-b-2 border-purple-500'
+                                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                            }`}
+                    >
+                        <FileText className="w-5 h-5" />
+                        Gerar Proposta
                     </button>
                 </div>
 
@@ -359,11 +407,11 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
                                 </div>
                             )}
 
-                            {/* Etapa: Criar (fallback ou erro) */}
+                            {/* Etapa: Criar (tela inicial ou após erro) */}
                             {checklistEtapa === 'criar' && (
-                                <div>
+                                <div className="text-center py-8">
                                     {error && (
-                                        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
+                                        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3 text-left max-w-lg mx-auto">
                                             <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                                             <div>
                                                 <p className="text-yellow-800 font-medium">Não foi possível analisar automaticamente</p>
@@ -372,45 +420,34 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
                                         </div>
                                     )}
 
-                                    <div className="text-center mb-8">
-                                        <h3 className="text-xl font-bold text-gray-800">Criar Checklist de Documentos</h3>
-                                        <p className="text-gray-600 mt-2">
-                                            Escolha uma opção para criar o checklist
-                                        </p>
+                                    <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <ClipboardList className="w-10 h-10 text-green-600" />
                                     </div>
+                                    <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                                        Checklist de Documentos
+                                    </h3>
+                                    <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                                        Gere uma lista de documentos necessários para participar desta licitação.
+                                    </p>
 
-                                    <div className="grid gap-4 md:grid-cols-2">
-                                        {/* Tentar novamente com IA */}
+                                    <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-lg mx-auto">
+                                        {/* Analisar com IA */}
                                         <button
                                             onClick={analisarComIA}
                                             disabled={loading}
-                                            className="p-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all text-left group disabled:opacity-50"
+                                            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition font-medium shadow-lg disabled:opacity-50"
                                         >
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                                                    <Sparkles className="w-5 h-5 text-purple-600" />
-                                                </div>
-                                                <h4 className="font-semibold text-gray-800">Tentar Análise IA</h4>
-                                            </div>
-                                            <p className="text-sm text-gray-600">
-                                                Analisar novamente as informações da licitação com inteligência artificial
-                                            </p>
+                                            <Sparkles className="w-5 h-5" />
+                                            Gerar com IA
                                         </button>
 
                                         {/* Usar Lista Padrão */}
                                         <button
                                             onClick={criarChecklistPadrao}
-                                            className="p-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all text-left group"
+                                            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-green-500 hover:bg-green-50 transition font-medium"
                                         >
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
-                                                    <List className="w-5 h-5 text-green-600" />
-                                                </div>
-                                                <h4 className="font-semibold text-gray-800">Lista Padrão</h4>
-                                            </div>
-                                            <p className="text-sm text-gray-600">
-                                                Usar uma lista padrão com os documentos mais comuns em licitações
-                                            </p>
+                                            <List className="w-5 h-5" />
+                                            Lista Padrão
                                         </button>
                                     </div>
                                 </div>
@@ -428,6 +465,98 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
                                 />
                             )}
                         </>
+                    )}
+
+                    {/* Aba Proposta */}
+                    {abaAtiva === 'proposta' && (
+                        <div>
+                            {!proposta && !propostaLoading && !propostaError && (
+                                <div className="text-center py-12">
+                                    <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <Sparkles className="w-10 h-10 text-purple-600" />
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                                        Gerar Proposta Comercial
+                                    </h3>
+                                    <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                                        A IA irá analisar esta licitação e gerar uma proposta comercial completa e profissional para sua empresa.
+                                    </p>
+                                    <button
+                                        onClick={gerarProposta}
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition font-medium shadow-lg"
+                                    >
+                                        <Sparkles className="w-5 h-5" />
+                                        Gerar Proposta com IA
+                                    </button>
+                                </div>
+                            )}
+
+                            {propostaLoading && (
+                                <div className="text-center py-12">
+                                    <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <Loader2 className="w-10 h-10 text-purple-600 animate-spin" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                                        Gerando Proposta...
+                                    </h3>
+                                    <p className="text-gray-600">
+                                        A IA está analisando a licitação e elaborando sua proposta comercial
+                                    </p>
+                                </div>
+                            )}
+
+                            {propostaError && (
+                                <div className="text-center py-12">
+                                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <AlertCircle className="w-10 h-10 text-red-600" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                                        Erro ao gerar proposta
+                                    </h3>
+                                    <p className="text-red-600 mb-4">{propostaError}</p>
+                                    <button
+                                        onClick={gerarProposta}
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                                    >
+                                        Tentar novamente
+                                    </button>
+                                </div>
+                            )}
+
+                            {proposta && (
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                            <Sparkles className="w-5 h-5 text-purple-600" />
+                                            Proposta Gerada
+                                        </h3>
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(proposta);
+                                            }}
+                                            className="text-sm px-3 py-1 text-purple-600 hover:bg-purple-50 rounded-lg transition"
+                                        >
+                                            Copiar
+                                        </button>
+                                    </div>
+                                    <div className="prose prose-sm max-w-none bg-gray-50 rounded-lg p-6 overflow-auto max-h-[60vh]">
+                                        <pre className="whitespace-pre-wrap font-sans text-gray-700 text-sm leading-relaxed">
+                                            {proposta}
+                                        </pre>
+                                    </div>
+                                    <div className="mt-4 flex gap-3">
+                                        <button
+                                            onClick={gerarProposta}
+                                            disabled={propostaLoading}
+                                            className="flex items-center gap-2 px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition"
+                                        >
+                                            <Sparkles className="w-4 h-4" />
+                                            Gerar Nova Versão
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>

@@ -12,65 +12,27 @@ import {
     Tag,
     Clock,
     FileText,
-    Sparkles,
-    Loader2,
     FileSearch,
     Heart,
+    Zap,
 } from 'lucide-react';
 import { Licitacao } from '@/types/licitacao';
-import { ModalProposta } from './ModalProposta';
+import { MatchResult, PerfilEmpresa } from '@/types/empresa';
 import { ModalAnaliseIA } from './ModalAnaliseIA';
+import { ModalMatchIA } from './ModalMatchIA';
+import { BadgeMatch } from './BadgeMatch';
 
 interface LicitacaoCardProps {
     licitacao: Licitacao;
     isFavorito?: boolean;
     onToggleFavorito?: (id: string) => void;
+    match?: MatchResult | null;
+    perfil?: PerfilEmpresa | null;
 }
 
-export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito }: LicitacaoCardProps) {
-    const [modalAberta, setModalAberta] = useState(false);
+export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito, match, perfil }: LicitacaoCardProps) {
     const [modalAnaliseAberta, setModalAnaliseAberta] = useState(false);
-    const [proposta, setProposta] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const gerarProposta = async () => {
-        setModalAberta(true);
-        setLoading(true);
-        setError(null);
-        setProposta(null);
-
-        try {
-            const response = await fetch('/api/gerar-proposta', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    objeto: licitacao.objeto,
-                    orgao: licitacao.orgao,
-                    uf: licitacao.uf,
-                    municipio: licitacao.municipio,
-                    modalidade: licitacao.modalidade,
-                    valorEstimado: licitacao.valorEstimado,
-                    dataAbertura: licitacao.dataAbertura,
-                    categorias: licitacao.categorias,
-                }),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                setProposta(data.proposta);
-            } else {
-                setError(data.error || 'Erro ao gerar proposta');
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Erro de conexão');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const [modalMatchIAAberta, setModalMatchIAAberta] = useState(false);
 
     const formatarData = (data: string | undefined) => {
         if (!data) return 'Não informada';
@@ -126,10 +88,22 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito 
     };
 
     return (
-        <div className={`bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 border ${isFavorito ? 'border-pink-300 ring-2 ring-pink-100' : 'border-gray-100'}`}>
+        <div className={`bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 border relative ${match && match.percentual >= 80
+                ? 'border-green-400 ring-2 ring-green-100'
+                : isFavorito
+                    ? 'border-pink-300 ring-2 ring-pink-100'
+                    : 'border-gray-100'
+            }`}>
+            {/* Badge de Match */}
+            {match && match.percentual >= 50 && (
+                <div className="absolute -top-3 -right-3 z-10">
+                    <BadgeMatch match={match} size="sm" />
+                </div>
+            )}
+
             <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getSituacaoColor(licitacao.situacao)}`}>
                             {licitacao.situacao}
                         </span>
@@ -148,11 +122,10 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito 
                 {onToggleFavorito && (
                     <button
                         onClick={() => onToggleFavorito(licitacao.id)}
-                        className={`p-2 rounded-full transition-all ${
-                            isFavorito
+                        className={`p-2 rounded-full transition-all ${isFavorito
                                 ? 'bg-pink-100 text-pink-600 hover:bg-pink-200'
                                 : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-pink-500'
-                        }`}
+                            }`}
                         title={isFavorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
                     >
                         <Heart className={`w-5 h-5 ${isFavorito ? 'fill-current' : ''}`} />
@@ -218,24 +191,22 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito 
 
             <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
                 <button
-                    onClick={gerarProposta}
-                    disabled={loading}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {loading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                        <Sparkles className="w-4 h-4" />
-                    )}
-                    Gerar Proposta
-                </button>
-                <button
                     onClick={() => setModalAnaliseAberta(true)}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition text-sm font-medium"
                 >
                     <FileSearch className="w-4 h-4" />
-                    Analisar com IA
+                    Analisar Edital
                 </button>
+                {perfil && match && match.percentual >= 40 && (
+                    <button
+                        onClick={() => setModalMatchIAAberta(true)}
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 transition text-sm font-medium"
+                        title="Análise de compatibilidade com IA"
+                    >
+                        <Zap className="w-4 h-4" />
+                        Match IA
+                    </button>
+                )}
                 <a
                     href={`https://pncp.gov.br/app/editais/${licitacao.cnpjOrgao}/${licitacao.id.split('-').slice(1).join('/')}`}
                     target="_blank"
@@ -247,19 +218,18 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito 
                 </a>
             </div>
 
-            <ModalProposta
-                isOpen={modalAberta}
-                onClose={() => setModalAberta(false)}
-                proposta={proposta}
-                loading={loading}
-                error={error}
-                licitacaoObjeto={licitacao.objeto}
-            />
-
             {modalAnaliseAberta && (
                 <ModalAnaliseIA
                     licitacao={licitacao}
                     onClose={() => setModalAnaliseAberta(false)}
+                />
+            )}
+
+            {modalMatchIAAberta && perfil && (
+                <ModalMatchIA
+                    licitacao={licitacao}
+                    perfil={perfil}
+                    onClose={() => setModalMatchIAAberta(false)}
                 />
             )}
         </div>

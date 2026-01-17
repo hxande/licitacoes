@@ -3,10 +3,15 @@
 import { useState } from 'react';
 import { LicitacaoCard } from './LicitacaoCard';
 import { Licitacao } from '@/types/licitacao';
-import { FileQuestion, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Heart, List } from 'lucide-react';
+import { MatchResult, PerfilEmpresa } from '@/types/empresa';
+import { FileQuestion, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Heart, List, Sparkles } from 'lucide-react';
+
+interface LicitacaoComMatch extends Licitacao {
+    match?: MatchResult | null;
+}
 
 interface ListaLicitacoesProps {
-    licitacoes: Licitacao[];
+    licitacoes: LicitacaoComMatch[];
     loading: boolean;
     error: string | null;
     meta: {
@@ -21,6 +26,7 @@ interface ListaLicitacoesProps {
     onIrParaPagina: (pagina: number) => void;
     favoritos: Set<string>;
     onToggleFavorito: (id: string) => void;
+    perfil?: PerfilEmpresa | null;
 }
 
 function Paginacao({
@@ -155,6 +161,7 @@ export function ListaLicitacoes({
     onIrParaPagina,
     favoritos,
     onToggleFavorito,
+    perfil,
 }: ListaLicitacoesProps) {
     const [mostrarApenasFavoritos, setMostrarApenasFavoritos] = useState(false);
 
@@ -269,6 +276,8 @@ export function ListaLicitacoes({
                             licitacao={licitacao}
                             isFavorito={favoritos.has(licitacao.id)}
                             onToggleFavorito={onToggleFavorito}
+                            match={licitacao.match}
+                            perfil={perfil}
                         />
                     ))}
                 </div>
