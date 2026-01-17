@@ -16,6 +16,8 @@ import {
     Heart,
     Zap,
     BarChart3,
+    Plus,
+    Check,
 } from 'lucide-react';
 import { Licitacao } from '@/types/licitacao';
 import { MatchResult, PerfilEmpresa } from '@/types/empresa';
@@ -23,6 +25,7 @@ import { ModalAnaliseIA } from './ModalAnaliseIA';
 import { ModalMatchIA } from './ModalMatchIA';
 import { ModalAnaliseMercado } from './ModalAnaliseMercado';
 import { BadgeMatch } from './BadgeMatch';
+import { usePipeline } from '@/hooks/usePipeline';
 
 interface LicitacaoCardProps {
     licitacao: Licitacao;
@@ -36,6 +39,15 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito,
     const [modalAnaliseAberta, setModalAnaliseAberta] = useState(false);
     const [modalMatchIAAberta, setModalMatchIAAberta] = useState(false);
     const [modalMercadoAberta, setModalMercadoAberta] = useState(false);
+    const { licitacoes: licitacoesPipeline, adicionarAoPipeline } = usePipeline();
+
+    const jaEstaNoPipeline = licitacoesPipeline.some(l => l.id === licitacao.id);
+
+    const handleAdicionarPipeline = () => {
+        if (!jaEstaNoPipeline) {
+            adicionarAoPipeline(licitacao);
+        }
+    };
 
     const formatarData = (data: string | undefined) => {
         if (!data) return 'Não informada';
@@ -124,19 +136,36 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito,
                         {licitacao.objeto}
                     </h3>
                 </div>
-                {/* Botão Favoritar */}
-                {onToggleFavorito && (
+                {/* Botões Favoritar e Acompanhar */}
+                <div className="flex items-center gap-1">
                     <button
-                        onClick={() => onToggleFavorito(licitacao.id)}
-                        className={`p-2 rounded-full transition-all ${isFavorito
-                            ? 'bg-pink-100 text-pink-600 hover:bg-pink-200'
-                            : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-pink-500'
+                        onClick={handleAdicionarPipeline}
+                        disabled={jaEstaNoPipeline}
+                        className={`p-2 rounded-full transition-all ${jaEstaNoPipeline
+                                ? 'bg-amber-100 text-amber-600'
+                                : 'bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600'
                             }`}
-                        title={isFavorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                        title={jaEstaNoPipeline ? 'Já está em Acompanhamento' : 'Adicionar ao Acompanhamento'}
                     >
-                        <Heart className={`w-5 h-5 ${isFavorito ? 'fill-current' : ''}`} />
+                        {jaEstaNoPipeline ? (
+                            <Check className="w-5 h-5" />
+                        ) : (
+                            <Plus className="w-5 h-5" />
+                        )}
                     </button>
-                )}
+                    {onToggleFavorito && (
+                        <button
+                            onClick={() => onToggleFavorito(licitacao.id)}
+                            className={`p-2 rounded-full transition-all ${isFavorito
+                                ? 'bg-pink-100 text-pink-600 hover:bg-pink-200'
+                                : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-pink-500'
+                                }`}
+                            title={isFavorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                        >
+                            <Heart className={`w-5 h-5 ${isFavorito ? 'fill-current' : ''}`} />
+                        </button>
+                    )}
+                </div>
             </div>
 
             {licitacao.categorias && licitacao.categorias.length > 0 && (

@@ -8,7 +8,7 @@ import { ModalPerfilEmpresa } from '@/components/ModalPerfilEmpresa';
 import { useLicitacoes } from '@/hooks/useLicitacoes';
 import { useFavoritos } from '@/hooks/useFavoritos';
 import { usePerfilEmpresa } from '@/hooks/usePerfilEmpresa';
-import { Building2, Target, Zap, Heart, BarChart3, UserCog, Sparkles } from 'lucide-react';
+import { Building2, Target, Zap, Heart, BarChart3, UserCog, Sparkles, Kanban } from 'lucide-react';
 
 export default function Home() {
   const { licitacoes, loading, error, meta, buscar, carregarMais, irParaPagina } = useLicitacoes();
@@ -57,15 +57,21 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setModalPerfilAberto(true)}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition text-sm font-medium shadow-sm ${
-                  temPerfil
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition text-sm font-medium shadow-sm ${temPerfil
                     ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                }`}
+                  }`}
               >
                 <UserCog className="w-4 h-4" />
                 {temPerfil ? 'Perfil Configurado' : 'Configurar Perfil'}
               </button>
+              <Link
+                href="/pipeline"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition text-sm font-medium shadow-sm"
+              >
+                <Kanban className="w-4 h-4" />
+                Acompanhamento
+              </Link>
               <Link
                 href="/dashboard"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition text-sm font-medium shadow-sm"
