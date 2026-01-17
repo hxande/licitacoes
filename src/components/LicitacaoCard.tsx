@@ -15,11 +15,13 @@ import {
     FileSearch,
     Heart,
     Zap,
+    BarChart3,
 } from 'lucide-react';
 import { Licitacao } from '@/types/licitacao';
 import { MatchResult, PerfilEmpresa } from '@/types/empresa';
 import { ModalAnaliseIA } from './ModalAnaliseIA';
 import { ModalMatchIA } from './ModalMatchIA';
+import { ModalAnaliseMercado } from './ModalAnaliseMercado';
 import { BadgeMatch } from './BadgeMatch';
 
 interface LicitacaoCardProps {
@@ -33,6 +35,7 @@ interface LicitacaoCardProps {
 export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito, match, perfil }: LicitacaoCardProps) {
     const [modalAnaliseAberta, setModalAnaliseAberta] = useState(false);
     const [modalMatchIAAberta, setModalMatchIAAberta] = useState(false);
+    const [modalMercadoAberta, setModalMercadoAberta] = useState(false);
 
     const formatarData = (data: string | undefined) => {
         if (!data) return 'Não informada';
@@ -210,6 +213,14 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito,
                         Match IA
                     </button>
                 )}
+                <button
+                    onClick={() => setModalMercadoAberta(true)}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg hover:from-purple-600 hover:to-indigo-600 transition text-sm font-medium"
+                    title="Análise de mercado com histórico de vencedores"
+                >
+                    <BarChart3 className="w-4 h-4" />
+                    Mercado
+                </button>
                 <a
                     href={`https://pncp.gov.br/app/editais/${licitacao.cnpjOrgao}/${licitacao.id.split('-').slice(1).join('/')}`}
                     target="_blank"
@@ -233,6 +244,14 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito,
                     licitacao={licitacao}
                     perfil={perfil}
                     onClose={() => setModalMatchIAAberta(false)}
+                />
+            )}
+
+            {modalMercadoAberta && (
+                <ModalAnaliseMercado
+                    isOpen={modalMercadoAberta}
+                    onClose={() => setModalMercadoAberta(false)}
+                    licitacao={licitacao}
                 />
             )}
         </div>
