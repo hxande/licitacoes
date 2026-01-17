@@ -91,7 +91,7 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito,
     };
 
     return (
-        <div className={`bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 border relative ${match && match.percentual >= 80
+        <div className={`bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 border relative flex flex-col h-full ${match && match.percentual >= 80
             ? 'border-green-400 ring-2 ring-green-100'
             : isFavorito
                 ? 'border-pink-300 ring-2 ring-pink-100'
@@ -195,7 +195,7 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito,
                 </div>
             </div>
 
-            <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
+            <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100 mt-auto">
                 <button
                     onClick={() => setModalAnaliseAberta(true)}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition text-sm font-medium"
