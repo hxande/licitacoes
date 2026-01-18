@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import prisma, { withReconnect } from '@/lib/prisma';
-import { ensureTables } from '@/lib/migrations';
 import { jsonResponse } from '@/lib/response';
 
 const USER_ID = 999;
 
 export async function GET() {
     try {
-        await ensureTables();
         const res = await withReconnect((r: any) => r.perfil_empresa.findUnique({ where: { user_id: BigInt(USER_ID) as any } })) as any | null;
         if (!res) return jsonResponse(null);
         return jsonResponse({ dados: (res as any).dados, atualizado_em: (res as any).atualizado_em });

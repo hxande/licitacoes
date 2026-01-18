@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
 import prisma, { withReconnect } from '@/lib/prisma';
-import { ensureTables } from '@/lib/migrations';
 
 const USER_ID = 999;
 
 export async function GET() {
     try {
-        await ensureTables();
         const res = await withReconnect((r: any) => r.favorito.findMany({ where: { user_id: BigInt(USER_ID) } })) as any[];
         return NextResponse.json((res || []).map((r: any) => r.licitacao_id));
     } catch (err) {

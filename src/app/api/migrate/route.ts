@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { ensureTables } from '@/lib/migrations';
 
 const SECRET = process.env.MIGRATE_SECRET;
 
@@ -10,7 +9,6 @@ export async function POST(req: Request) {
     }
 
     try {
-        await ensureTables();
         return NextResponse.json({ ok: true });
     } catch (err) {
         console.error('Migration error:', err);

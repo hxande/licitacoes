@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
 import prisma, { withReconnect } from '@/lib/prisma';
 import { isDbAvailable } from '@/lib/db';
-import { ensureTables } from '@/lib/migrations';
 import { jsonResponse } from '@/lib/response';
 
 const USER_ID = 999;
 
 export async function GET() {
     try {
-        await ensureTables();
         const ok = await isDbAvailable();
         if (!ok) return NextResponse.json([], { status: 503 });
         const rows = await withReconnect((p: any) => p.pipeline.findMany({ where: { user_id: BigInt(USER_ID) }, orderBy: { criado_em: 'desc' } })) as any[];

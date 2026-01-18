@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import prisma, { withReconnect } from '@/lib/prisma';
-import { ensureTables } from '@/lib/migrations';
 import { isDbAvailable } from '@/lib/db';
 import { jsonResponse } from '@/lib/response';
 
@@ -8,7 +7,6 @@ const USER_ID = 999;
 
 export async function GET(req: Request) {
     try {
-        await ensureTables();
         const ok = await isDbAvailable();
         if (!ok) return NextResponse.json([], { status: 503 });
         const { searchParams } = new URL(req.url);
