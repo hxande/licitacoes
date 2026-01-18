@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { sql, isDbAvailable } from '@/lib/db';
+import prisma, { withReconnect } from '@/lib/prisma';
+import { isDbAvailable } from '@/lib/db';
 import { ensureTables } from '@/lib/migrations';
 
 const USER_ID = 999;
@@ -9,8 +10,8 @@ export async function GET() {
         await ensureTables();
         const ok = await isDbAvailable();
         if (!ok) return NextResponse.json([], { status: 503 });
-        const res = await sql`SELECT id, objeto, orgao, uf, valor_estimado, data_abertura, modalidade, cnpj_orgao, status, observacoes, adicionado_em, atualizado_em FROM pipeline WHERE user_id = ${USER_ID}` as any[];
-        return NextResponse.json(res);
+        const rows = await withReconnect((p: any) => p.pipeline.findMany({ where: { userId: BigInt(USER_ID) }, orderBy: { adicionadoEm: 'desc' } })) as any[];
+        return NextResponse.json(rows || []);
     } catch (err) {
         console.error(err);
         return NextResponse.json({ error: 'Erro ao listar pipeline' }, { status: 500 });
@@ -23,7 +24,21 @@ export async function POST(req: Request) {
         if (!ok) return NextResponse.json({ error: 'DB inacessível' }, { status: 503 });
         const body = await req.json();
         const { id, objeto, orgao, uf, valorEstimado, dataAbertura, modalidade, cnpjOrgao, status, observacoes } = body;
-        await sql`INSERT INTO pipeline(id, user_id, objeto, orgao, uf, valor_estimado, data_abertura, modalidade, cnpj_orgao, status, observacoes, adicionado_em, atualizado_em) VALUES(${id}, ${USER_ID}, ${objeto}, ${orgao}, ${uf}, ${valorEstimado}, ${dataAbertura}, ${modalidade}, ${cnpjOrgao}, ${status}, ${observacoes}, NOW(), NOW())`;
+        await withReconnect((p: any) => p.pipeline.create({
+            data: {
+                id,
+                userId: BigInt(USER_ID) as any,
+                objeto,
+                orgao,
+                uf,
+                valorEstimado: (valorEstimado ?? null) as any,
+                dataAbertura: dataAbertura ?? null,
+                modalidade: modalidade ?? null,
+                cnpjOrgao: cnpjOrgao ?? null,
+                status: status ?? null,
+                observacoes: observacoes ?? null,
+            }
+        }));
         return NextResponse.json({ ok: true });
     } catch (err) {
         console.error(err);
@@ -37,7 +52,7 @@ export async function PUT(req: Request) {
         if (!ok) return NextResponse.json({ error: 'DB inacessível' }, { status: 503 });
         const body = await req.json();
         const { id, status, observacoes } = body;
-        await sql`UPDATE pipeline SET status = ${status}, observacoes = ${observacoes}, atualizado_em = NOW() WHERE id = ${id} AND user_id = ${USER_ID}`;
+        await withReconnect((p: any) => p.pipeline.updateMany({ where: { id, userId: BigInt(USER_ID) as any }, data: { status: status ?? undefined, observacoes: observacoes ?? undefined, atualizadoEm: new Date() } }));
         return NextResponse.json({ ok: true });
     } catch (err) {
         console.error(err);
@@ -52,7 +67,7 @@ export async function DELETE(req: Request) {
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id');
         if (!id) return NextResponse.json({ error: 'id missing' }, { status: 400 });
-        await sql`DELETE FROM pipeline WHERE id = ${id} AND user_id = ${USER_ID}`;
+        await withReconnect((p: any) => p.pipeline.deleteMany({ where: { id, userId: BigInt(USER_ID) as any } }));
         return NextResponse.json({ ok: true });
     } catch (err) {
         console.error(err);

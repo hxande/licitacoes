@@ -9,25 +9,24 @@ datasource db {
 
 model Alerta {
   id           BigInt   @id @default(autoincrement())
-  user_id      BigInt
+  userId       BigInt
   nome         String
   filtros      Json     @default("{}")
   periodicidade String  @default("diario")
-  criado_em    DateTime @default(now())
+  criadoEm     DateTime @default(now())
 }
 
 model Favorito {
-  user_id     BigInt
-  licitacao_id String
-  marcado_em  DateTime @default(now())
-
-  @@id([user_id, licitacao_id])
+  userId      BigInt
+  licitacaoId String
+  marcadoEm   DateTime @default(now())
+  @@id([userId, licitacaoId])
 }
 
 model PerfilEmpresa {
-  user_id      BigInt @id
-  dados        Json  @default("{}")
-  atualizado_em DateTime @default(now())
+  userId       BigInt @id
+  dados         Json  @default("{}")
+  atualizadoEm  DateTime @default(now())
 }
 
 model HistoricoContrato {
@@ -46,3 +45,33 @@ model HistoricoContrato {
   areaAtuacao       String
   palavrasChave     Json
 }
+
+model Pipeline {
+  id             String @id
+  userId         BigInt
+  objeto         String
+  orgao          String
+  uf             String
+  valorEstimado  Float?
+  dataAbertura   String?
+  modalidade     String?
+  cnpjOrgao      String?
+  status         String?
+  observacoes    String?
+  adicionadoEm   DateTime @default(now())
+  atualizadoEm   DateTime @default(now())
+}
+
+model Checklist {
+  id            String @id
+  userId        BigInt
+  titulo        String?
+  licitacaoId   String?
+  orgao         String?
+  objeto        String?
+  dataAbertura  String?
+  documentos    Json   @default("[]")
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @default(now())
+}
+

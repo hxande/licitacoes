@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { sql, isDbAvailable } from '@/lib/db';
+import prisma, { withReconnect } from '@/lib/prisma';
 import { ensureTables } from '@/lib/migrations';
+import { isDbAvailable } from '@/lib/db';
 
 const USER_ID = 999;
 
@@ -12,11 +13,11 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url);
         const licitacaoId = searchParams.get('licitacaoId');
         if (licitacaoId) {
-            const res = await sql`SELECT * FROM checklists WHERE user_id = ${USER_ID} AND licitacao_id = ${licitacaoId}` as any[];
-            return NextResponse.json(res[0] ?? null);
+            const item = await withReconnect((p: any) => p.checklist.findFirst({ where: { userId: BigInt(USER_ID), licitacaoId } }));
+            return NextResponse.json(item ?? null);
         }
-        const res = await sql`SELECT * FROM checklists WHERE user_id = ${USER_ID} ORDER BY criado_em DESC` as any[];
-        return NextResponse.json(res);
+        const rows = await withReconnect((p: any) => p.checklist.findMany({ where: { userId: BigInt(USER_ID) }, orderBy: { criadoEm: 'desc' } }));
+        return NextResponse.json(rows);
     } catch (err) {
         console.error(err);
         return NextResponse.json({ error: 'Erro ao listar checklists' }, { status: 500 });
@@ -29,7 +30,18 @@ export async function POST(req: Request) {
         if (!ok) return NextResponse.json({ error: 'DB inacessível' }, { status: 503 });
         const body = await req.json();
         const { id, titulo, licitacaoId, orgao, objeto, dataAbertura, documentos } = body;
-        await sql`INSERT INTO checklists(id, user_id, titulo, licitacao_id, orgao, objeto, data_abertura, documentos, criado_em, atualizado_em) VALUES(${id}, ${USER_ID}, ${titulo}, ${licitacaoId}, ${orgao}, ${objeto}, ${dataAbertura}, ${documentos}, NOW(), NOW())`;
+        await withReconnect((p: any) => p.checklist.create({
+            data: {
+                id,
+                userId: BigInt(USER_ID),
+                titulo: titulo ?? null,
+                licitacaoId: licitacaoId ?? null,
+                orgao: orgao ?? null,
+                objeto: objeto ?? null,
+                dataAbertura: dataAbertura ?? null,
+                documentos: documentos ?? []
+            }
+        }));
         return NextResponse.json({ ok: true });
     } catch (err) {
         console.error(err);
@@ -43,7 +55,7 @@ export async function PUT(req: Request) {
         if (!ok) return NextResponse.json({ error: 'DB inacessível' }, { status: 503 });
         const body = await req.json();
         const { id, titulo, documentos } = body;
-        await sql`UPDATE checklists SET titulo = ${titulo}, documentos = ${documentos}, atualizado_em = NOW() WHERE id = ${id} AND user_id = ${USER_ID}`;
+        await withReconnect((p: any) => p.checklist.updateMany({ where: { id, userId: BigInt(USER_ID) }, data: { titulo: titulo ?? undefined, documentos: documentos ?? undefined, atualizadoEm: new Date() } }));
         return NextResponse.json({ ok: true });
     } catch (err) {
         console.error(err);
@@ -58,7 +70,7 @@ export async function DELETE(req: Request) {
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id');
         if (!id) return NextResponse.json({ error: 'id missing' }, { status: 400 });
-        await sql`DELETE FROM checklists WHERE id = ${id} AND user_id = ${USER_ID}`;
+        await withReconnect((p: any) => p.checklist.deleteMany({ where: { id, userId: BigInt(USER_ID) } }));
         return NextResponse.json({ ok: true });
     } catch (err) {
         console.error(err);
