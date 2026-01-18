@@ -3,7 +3,7 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import prisma from '@/lib/prisma';
+import prisma, { withReconnect } from '@/lib/prisma';
 import {
     DadosHistoricos,
     ContratoHistorico,
@@ -28,7 +28,7 @@ async function ensureDataDir() {
 export async function carregarDadosHistoricos(): Promise<DadosHistoricos | null> {
     // Prefer DB if available
     try {
-        const rows = await prisma.historicoContrato.findMany({ orderBy: { dataPublicacao: 'desc' } });
+        const rows = await withReconnect(r => r.historicoContrato.findMany({ orderBy: { dataPublicacao: 'desc' } }));
         const contratos = rows.map(r => ({
             id: r.id,
             cnpjOrgao: r.cnpjOrgao,
@@ -72,7 +72,7 @@ export async function salvarDadosHistoricos(dados: DadosHistoricos): Promise<voi
     // Save to DB: upsert contracts
     try {
         for (const c of dados.contratos) {
-            await prisma.historicoContrato.upsert({
+            await withReconnect(r => r.historicoContrato.upsert({
                 where: { id: c.id },
                 create: {
                     id: c.id,
@@ -100,7 +100,7 @@ export async function salvarDadosHistoricos(dados: DadosHistoricos): Promise<voi
                     areaAtuacao: c.areaAtuacao,
                     palavrasChave: c.palavrasChave,
                 }
-            });
+            }));
         }
     } catch (err) {
         // If DB unavailable, fallback to file
