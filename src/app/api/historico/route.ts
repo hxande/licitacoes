@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { jsonResponse } from '@/lib/response';
 import {
     adicionarContratos,
     obterEstatisticasHistorico,
@@ -176,14 +177,14 @@ export async function GET() {
         const stats = await obterEstatisticasHistorico();
         const dados = await carregarDadosHistoricos();
 
-        return NextResponse.json({
+        return jsonResponse({
             success: true,
             stats,
             amostra: dados?.contratos.slice(0, 5) || [],
         });
     } catch (error) {
         console.error('[Histórico] Erro:', error);
-        return NextResponse.json(
+        return jsonResponse(
             { success: false, error: 'Erro ao carregar histórico' },
             { status: 500 }
         );
@@ -238,7 +239,7 @@ export async function POST(request: NextRequest) {
         const novosAdicionados = await adicionarContratos(todosContratos);
         const statsAtualizadas = await obterEstatisticasHistorico();
 
-        return NextResponse.json({
+        return jsonResponse({
             success: true,
             message: `Carga concluída`,
             contratosEncontrados: todosContratos.length,
@@ -250,7 +251,7 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error('[Histórico] Erro na carga:', error);
-        return NextResponse.json(
+        return jsonResponse(
             { success: false, error: 'Erro ao carregar dados históricos' },
             { status: 500 }
         );

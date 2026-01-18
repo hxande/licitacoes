@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma, { withReconnect } from '@/lib/prisma';
 import { ensureTables } from '@/lib/migrations';
 import { isDbAvailable } from '@/lib/db';
+import { jsonResponse } from '@/lib/response';
 
 const USER_ID = 999;
 
@@ -14,10 +15,10 @@ export async function GET(req: Request) {
         const licitacaoId = searchParams.get('licitacaoId');
         if (licitacaoId) {
             const item = await withReconnect((p: any) => p.checklist.findFirst({ where: { userId: BigInt(USER_ID), licitacaoId } }));
-            return NextResponse.json(item ?? null);
+            return jsonResponse(item ?? null);
         }
         const rows = await withReconnect((p: any) => p.checklist.findMany({ where: { userId: BigInt(USER_ID) }, orderBy: { criadoEm: 'desc' } }));
-        return NextResponse.json(rows);
+        return jsonResponse(rows);
     } catch (err) {
         console.error(err);
         return NextResponse.json({ error: 'Erro ao listar checklists' }, { status: 500 });

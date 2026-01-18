@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma, { withReconnect } from '@/lib/prisma';
 import { isDbAvailable } from '@/lib/db';
 import { ensureTables } from '@/lib/migrations';
+import { jsonResponse } from '@/lib/response';
 
 const USER_ID = 999;
 
@@ -11,7 +12,7 @@ export async function GET() {
         const ok = await isDbAvailable();
         if (!ok) return NextResponse.json([], { status: 503 });
         const rows = await withReconnect((p: any) => p.pipeline.findMany({ where: { userId: BigInt(USER_ID) }, orderBy: { adicionadoEm: 'desc' } })) as any[];
-        return NextResponse.json(rows || []);
+        return jsonResponse(rows || []);
     } catch (err) {
         console.error(err);
         return NextResponse.json({ error: 'Erro ao listar pipeline' }, { status: 500 });

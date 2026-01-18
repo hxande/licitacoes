@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ensureTables } from '@/lib/migrations';
 import prisma, { withReconnect } from '@/lib/prisma';
+import { jsonResponse } from '@/lib/response';
 
 const USER_ID = 999;
 
@@ -9,7 +10,7 @@ export async function GET() {
         await ensureTables();
         const res = await withReconnect((r: any) => r.alerta.findMany({ where: { userId: BigInt(USER_ID) }, orderBy: { criadoEm: 'desc' } })) as any[];
         const rows = (res || []).map((r: any) => ({ id: r.id.toString(), nome: r.nome, filtros: r.filtros, periodicidade: r.periodicidade, criadoEm: r.criadoEm }));
-        return NextResponse.json(rows);
+        return jsonResponse(rows);
     } catch (err) {
         console.error(err);
         return NextResponse.json({ error: 'Erro ao listar alertas' }, { status: 500 });
