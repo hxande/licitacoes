@@ -64,4 +64,25 @@ This project now uses Prisma as ORM and expects a Postgres database for persiste
 - Generate Prisma client: `npm run prisma:generate`.
 - Apply migrations or push schema: `npm run prisma:migrate` (or `npx prisma db push`).
 
-Start the app after the database is ready: `npm run dev`.
+Vercel deployment notes
+
+- In the Vercel project settings add the environment variable `LICITACOES__POSTGRES_URL` (and any other needed vars) in both Preview and Production (and optionally Development) scopes.
+- Use this Build Command on Vercel:
+
+```bash
+npm run vercel-build
+```
+
+This ensures `prisma generate` runs before `next build` and the generated client is available at build/runtime.
+
+- Migrations: for production you should run migrations against the production DB before or during deployment. Options:
+	- Use `prisma migrate deploy` from a CI step (recommended) against the production DB.
+	- Or run `npx prisma db push` to push the schema (less safe for production).
+
+Example minimal Vercel env vars to set (copy values from your `.env.local`):
+
+- `LICITACOES__POSTGRES_URL`
+- `LICITACOES__POSTGRES_PRISMA_URL` (optional)
+- Any API keys (e.g. `GOOGLE_API_KEY`, Supabase keys) used by your app
+
+After these are set, deploy on Vercel normally — the build will generate Prisma client and Next build will succeed.
