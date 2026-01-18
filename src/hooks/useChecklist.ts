@@ -49,38 +49,17 @@ export function useChecklist() {
                 if (Array.isArray(data)) {
                     const updated = data.map((checklist: Checklist) => ({ ...checklist, documentos: atualizarStatusDocumentos(checklist.documentos) }));
                     setChecklists(updated);
-                    saveToStorage(updated);
                     return;
                 }
             } catch (e) {
-                // fallback to localStorage
-                const stored = loadFromStorage();
-                if (stored && Array.isArray(stored)) {
-                    const updated = stored.map((checklist: Checklist) => ({ ...checklist, documentos: atualizarStatusDocumentos(checklist.documentos) }));
-                    setChecklists(updated);
-                }
+                // If API fails, keep empty list (no client persistence)
+                setChecklists([]);
             }
         }
         load();
     }, []);
-
-    function loadFromStorage(): Checklist[] {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return [];
-            return JSON.parse(raw) as Checklist[];
-        } catch (e) {
-            return [];
-        }
-    }
-
-    function saveToStorage(list: Checklist[]) {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-        } catch (e) {
-            // ignore
-        }
-    }
+    function loadFromStorage(): Checklist[] { return []; }
+    function saveToStorage(_: Checklist[]) { /* noop - server persists checklists */ }
 
     const criarChecklist = useCallback((dados: {
         titulo: string;
@@ -112,13 +91,9 @@ export function useChecklist() {
             atualizadoEm: agora,
         };
 
-        setChecklists(prev => {
-            const next = [...prev, novoChecklist];
-            saveToStorage(next);
-            return next;
-        });
+        setChecklists(prev => { const next = [...prev, novoChecklist]; return next; });
         // persist to server; if fails, keep local copy
-        fetch('/api/checklists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(novoChecklist) }).catch(() => { saveToStorage(getCurrentChecklists()); });
+        fetch('/api/checklists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(novoChecklist) }).catch(() => { /* ignore local fallback */ });
         return novoChecklist;
     }, []);
 
@@ -181,10 +156,8 @@ export function useChecklist() {
                     };
                 })
             };
-            // persist
             const payload = { id: novo.id, titulo: novo.titulo, documentos: novo.documentos };
-            fetch('/api/checklists', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-                .catch(() => { saveToStorage(getCurrentChecklists()); });
+            fetch('/api/checklists', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => { /* ignore */ });
             return novo;
         }));
     }, []);
@@ -209,7 +182,7 @@ export function useChecklist() {
             };
             const payload = { id: novo.id, titulo: novo.titulo, documentos: novo.documentos };
             fetch('/api/checklists', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-                .catch(() => { saveToStorage(getCurrentChecklists()); });
+                .catch(() => { /* ignore */ });
             return novo;
         }));
     }, []);
@@ -234,7 +207,7 @@ export function useChecklist() {
             };
             const payload = { id: novo.id, titulo: novo.titulo, documentos: novo.documentos };
             fetch('/api/checklists', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-                .catch(() => { saveToStorage(getCurrentChecklists()); });
+                .catch(() => { /* ignore */ });
             return novo;
         }));
     }, []);
@@ -254,24 +227,14 @@ export function useChecklist() {
     }, []);
 
     const excluirChecklist = useCallback((checklistId: string) => {
-        setChecklists(prev => {
-            const next = prev.filter(c => c.id !== checklistId);
-            saveToStorage(next);
-            return next;
-        });
-        fetch(`/api/checklists?id=${encodeURIComponent(checklistId)}`, { method: 'DELETE' }).catch(() => { saveToStorage(getCurrentChecklists()); });
+        setChecklists(prev => prev.filter(c => c.id !== checklistId));
+        fetch(`/api/checklists?id=${encodeURIComponent(checklistId)}`, { method: 'DELETE' }).catch(() => { /* ignore */ });
         if (checklistAtual?.id === checklistId) {
             setChecklistAtual(null);
         }
     }, [checklistAtual]);
 
-    function getCurrentChecklists(): Checklist[] {
-        try {
-            return (typeof window !== 'undefined' && localStorage.getItem(STORAGE_KEY)) ? JSON.parse(localStorage.getItem(STORAGE_KEY) as string) as Checklist[] : checklists;
-        } catch (e) {
-            return checklists;
-        }
-    }
+    function getCurrentChecklists(): Checklist[] { return checklists; }
 
     const obterSummary = useCallback((checklist: Checklist): ChecklistSummary => {
         const docs = atualizarStatusDocumentos(checklist.documentos);

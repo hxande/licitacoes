@@ -20,13 +20,12 @@ export function usePerfilEmpresa() {
                 if (data) {
                     const p = data.dados || data;
                     setPerfil(p);
-                    saveToStorage(p);
                     setLoaded(true);
                     return;
                 }
             } catch (e) {
-                const stored = loadFromStorage();
-                setPerfil(stored);
+                // If API fails, leave perfil as null (no local persistence)
+                setPerfil(null);
             } finally {
                 setLoaded(true);
             }
@@ -34,24 +33,8 @@ export function usePerfilEmpresa() {
         load();
     }, []);
 
-    function loadFromStorage(): PerfilEmpresa | null {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return null;
-            return JSON.parse(raw) as PerfilEmpresa;
-        } catch (e) {
-            return null;
-        }
-    }
-
-    function saveToStorage(p: PerfilEmpresa | null) {
-        try {
-            if (p) localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
-            else localStorage.removeItem(STORAGE_KEY);
-        } catch (e) {
-            // ignore
-        }
-    }
+    function loadFromStorage(): PerfilEmpresa | null { return null; }
+    function saveToStorage(_: PerfilEmpresa | null) { /* noop - server persists data */ }
 
     // Salvar perfil
     const salvarPerfil = useCallback((novoPerfil: PerfilEmpresa) => {

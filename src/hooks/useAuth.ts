@@ -6,6 +6,7 @@ import { Usuario, Sessao, ConfiguracoesUsuario } from '@/types/usuario';
 const STORAGE_KEY = 'sessao-usuario';
 const PERFIL_KEY = 'perfil-usuario';
 const CONFIG_KEY = 'config-usuario';
+const FIXED_USER_ID = '999';
 
 // Gera um ID único simples
 const gerarId = () => Math.random().toString(36).substring(2, 15);
@@ -23,32 +24,8 @@ export function useAuth() {
     });
     const [carregando, setCarregando] = useState(true);
 
-    // Carregar sessão do localStorage
+    // No persistent client-side session: always start empty and fetch from server as needed
     useEffect(() => {
-        const sessaoSalva = localStorage.getItem(STORAGE_KEY);
-        if (sessaoSalva) {
-            try {
-                const sessaoParsed = JSON.parse(sessaoSalva) as Sessao;
-                // Verificar se não expirou (7 dias)
-                if (new Date(sessaoParsed.expiraEm) > new Date()) {
-                    setSessao(sessaoParsed);
-                } else {
-                    localStorage.removeItem(STORAGE_KEY);
-                }
-            } catch {
-                localStorage.removeItem(STORAGE_KEY);
-            }
-        }
-
-        const configSalva = localStorage.getItem(CONFIG_KEY);
-        if (configSalva) {
-            try {
-                setConfiguracoes(JSON.parse(configSalva));
-            } catch {
-                // Ignora
-            }
-        }
-
         setCarregando(false);
     }, []);
 
@@ -57,43 +34,13 @@ export function useAuth() {
         // Simula um delay de rede
         await new Promise(resolve => setTimeout(resolve, 800));
 
-        // Por enquanto, sempre autentica
-        // TODO: Implementar autenticação real
-
-        // Verifica se já existe um perfil salvo para este email
-        const perfilSalvo = localStorage.getItem(PERFIL_KEY);
-        let usuario: Usuario;
-
-        if (perfilSalvo) {
-            try {
-                const perfilParsed = JSON.parse(perfilSalvo);
-                if (perfilParsed.email === email) {
-                    usuario = perfilParsed;
-                } else {
-                    // Email diferente, criar novo usuário
-                    usuario = {
-                        id: gerarId(),
-                        nome: email.split('@')[0],
-                        email,
-                        criadoEm: new Date().toISOString(),
-                    };
-                }
-            } catch {
-                usuario = {
-                    id: gerarId(),
-                    nome: email.split('@')[0],
-                    email,
-                    criadoEm: new Date().toISOString(),
-                };
-            }
-        } else {
-            usuario = {
-                id: gerarId(),
-                nome: email.split('@')[0],
-                email,
-                criadoEm: new Date().toISOString(),
-            };
-        }
+        // Por enquanto, sempre autentica e força o usuário para id 999
+        const usuario: Usuario = {
+            id: FIXED_USER_ID,
+            nome: email.split('@')[0],
+            email,
+            criadoEm: new Date().toISOString(),
+        };
 
         const expiraEm = new Date();
         expiraEm.setDate(expiraEm.getDate() + 7); // 7 dias
@@ -104,8 +51,7 @@ export function useAuth() {
             expiraEm: expiraEm.toISOString(),
         };
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(novaSessao));
-        localStorage.setItem(PERFIL_KEY, JSON.stringify(usuario));
+        // Do not persist session/profile in localStorage; keep in-memory only
         setSessao(novaSessao);
 
         return { sucesso: true };
@@ -113,37 +59,20 @@ export function useAuth() {
 
     // Logout
     const logout = useCallback(() => {
-        localStorage.removeItem(STORAGE_KEY);
         setSessao(null);
     }, []);
 
     // Atualizar perfil do usuário
     const atualizarPerfil = useCallback((dadosAtualizados: Partial<Usuario>) => {
         if (!sessao) return;
-
-        const usuarioAtualizado = {
-            ...sessao.usuario,
-            ...dadosAtualizados,
-        };
-
-        const sessaoAtualizada = {
-            ...sessao,
-            usuario: usuarioAtualizado,
-        };
-
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessaoAtualizada));
-        localStorage.setItem(PERFIL_KEY, JSON.stringify(usuarioAtualizado));
+        const usuarioAtualizado = { ...sessao.usuario, ...dadosAtualizados };
+        const sessaoAtualizada = { ...sessao, usuario: usuarioAtualizado };
         setSessao(sessaoAtualizada);
     }, [sessao]);
 
     // Atualizar configurações
     const atualizarConfiguracoes = useCallback((novasConfigs: Partial<ConfiguracoesUsuario>) => {
-        const configsAtualizadas = {
-            ...configuracoes,
-            ...novasConfigs,
-        };
-
-        localStorage.setItem(CONFIG_KEY, JSON.stringify(configsAtualizadas));
+        const configsAtualizadas = { ...configuracoes, ...novasConfigs };
         setConfiguracoes(configsAtualizadas);
     }, [configuracoes]);
 

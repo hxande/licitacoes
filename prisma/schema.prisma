@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("LICITACOES__POSTGRES_URL")
+}
+
+model Alerta {
+  id           BigInt   @id @default(autoincrement())
+  user_id      BigInt
+  nome         String
+  filtros      Json     @default("{}")
+  periodicidade String  @default("diario")
+  criado_em    DateTime @default(now())
+}
+
+model Favorito {
+  user_id     BigInt
+  licitacao_id String
+  marcado_em  DateTime @default(now())
+
+  @@id([user_id, licitacao_id])
+}
+
+model PerfilEmpresa {
+  user_id      BigInt @id
+  dados        Json  @default("{}")
+  atualizado_em DateTime @default(now())
+}
+
+model HistoricoContrato {
+  id                String  @id
+  cnpjOrgao         String
+  orgao             String
+  uf                String
+  municipio         String?
+  objeto            String
+  fornecedorCnpj    String
+  fornecedorNome    String
+  valorContratado   Float
+  dataAssinatura    String
+  dataPublicacao    String
+  tipoContrato      String
+  areaAtuacao       String
+  palavrasChave     Json
+}

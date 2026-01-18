@@ -16,13 +16,12 @@ export function useFavoritos() {
                 const data = await res.json();
                 if (Array.isArray(data)) {
                     setFavoritos(new Set(data));
-                    saveToStorage(new Set(data));
                     setLoaded(true);
                     return;
                 }
             } catch (e) {
-                const stored = loadFromStorage();
-                setFavoritos(stored);
+                // If API fails, start with empty set (no local persistence)
+                setFavoritos(new Set());
             } finally {
                 setLoaded(true);
             }
@@ -30,24 +29,8 @@ export function useFavoritos() {
         load();
     }, []);
 
-    function loadFromStorage(): Set<string> {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return new Set();
-            const arr = JSON.parse(raw) as string[];
-            return new Set(arr);
-        } catch (e) {
-            return new Set();
-        }
-    }
-
-    function saveToStorage(set: Set<string>) {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(set)));
-        } catch (e) {
-            // ignore
-        }
-    }
+    function loadFromStorage(): Set<string> { return new Set(); }
+    function saveToStorage(_: Set<string>) { /* noop - server persists data */ }
 
     const toggleFavorito = useCallback((licitacaoId: string) => {
         // Optimistic toggle and server update
@@ -58,19 +41,13 @@ export function useFavoritos() {
             } else {
                 newSet.add(licitacaoId);
             }
-            saveToStorage(newSet);
+            // no-op client persistence; server holds authoritative data
             return newSet;
         });
-        fetch('/api/favoritos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ licitacaoId }) }).catch(() => { saveToStorage(getCurrentFavoritos()); });
+        fetch('/api/favoritos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ licitacaoId }) }).catch(() => { /* ignore */ });
     }, []);
 
-    function getCurrentFavoritos(): Set<string> {
-        try {
-            return localStorage.getItem(STORAGE_KEY) ? new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) as string)) : favoritos;
-        } catch (e) {
-            return favoritos;
-        }
-    }
+    function getCurrentFavoritos(): Set<string> { return favoritos; }
 
     const isFavorito = useCallback((licitacaoId: string) => {
         return favoritos.has(licitacaoId);

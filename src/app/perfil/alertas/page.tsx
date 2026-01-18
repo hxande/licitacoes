@@ -69,8 +69,8 @@ export default function PerfilAlertasPage() {
                         <div className="bg-white rounded p-6 text-center">Nenhum alerta criado ainda. Crie um alerta para ser notificado sobre novas licitações.</div>
                     ) : (
                         <ul className="grid gap-4">
-                            {alertas.map((a: AlertaLocal) => (
-                                <li key={a.id} className="bg-white p-4 rounded shadow-sm flex items-center justify-between transform transition duration-200 hover:shadow-md hover:-translate-y-1">
+                            {alertas.map((a: AlertaLocal, i: number) => (
+                                <li key={`${a.id ?? 'alert'}-${i}`} className="bg-white p-4 rounded shadow-sm flex items-center justify-between transform transition duration-200 hover:shadow-md hover:-translate-y-1">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center transition-colors duration-200 group-hover:bg-blue-100">
                                             <Bell className="w-6 h-6 text-blue-600" />

@@ -54,3 +54,14 @@ export $(grep -v '^#' .env.local | xargs)
 npm run dev
 # then open http://localhost:3000/neon-example
 ```
+
+## Prisma / Postgres
+
+This project now uses Prisma as ORM and expects a Postgres database for persistence.
+
+- Ensure `LICITACOES__POSTGRES_URL` is set in `.env.local`.
+- Install dependencies: `npm install`.
+- Generate Prisma client: `npm run prisma:generate`.
+- Apply migrations or push schema: `npm run prisma:migrate` (or `npx prisma db push`).
+
+Start the app after the database is ready: `npm run dev`.

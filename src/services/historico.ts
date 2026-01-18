@@ -3,6 +3,7 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
+import prisma from '@/lib/prisma';
 import {
     DadosHistoricos,
     ContratoHistorico,
@@ -25,19 +26,87 @@ async function ensureDataDir() {
 
 // Carregar dados históricos do arquivo
 export async function carregarDadosHistoricos(): Promise<DadosHistoricos | null> {
+    // Prefer DB if available
     try {
-        await ensureDataDir();
-        const data = await fs.readFile(HISTORICO_FILE, 'utf-8');
-        return JSON.parse(data);
-    } catch {
-        return null;
+        const rows = await prisma.historicoContrato.findMany({ orderBy: { dataPublicacao: 'desc' } });
+        const contratos = rows.map(r => ({
+            id: r.id,
+            cnpjOrgao: r.cnpjOrgao,
+            orgao: r.orgao,
+            uf: r.uf,
+            municipio: r.municipio || '',
+            objeto: r.objeto,
+            fornecedorCnpj: r.fornecedorCnpj,
+            fornecedorNome: r.fornecedorNome,
+            valorContratado: r.valorContratado,
+            dataAssinatura: r.dataAssinatura,
+            dataPublicacao: r.dataPublicacao,
+            tipoContrato: r.tipoContrato,
+            areaAtuacao: r.areaAtuacao,
+            palavrasChave: r.palavrasChave as string[],
+        }));
+
+        return {
+            ultimaAtualizacao: new Date().toISOString(),
+            totalContratos: contratos.length,
+            totalLicitacoes: 0,
+            periodoInicio: contratos.length > 0 ? contratos[contratos.length - 1].dataPublicacao : '',
+            periodoFim: contratos.length > 0 ? contratos[0].dataPublicacao : '',
+            contratos,
+            licitacoes: [],
+        } as DadosHistoricos;
+    } catch (e) {
+        // Fallback to file-based storage
+        try {
+            await ensureDataDir();
+            const data = await fs.readFile(HISTORICO_FILE, 'utf-8');
+            return JSON.parse(data);
+        } catch {
+            return null;
+        }
     }
 }
 
 // Salvar dados históricos no arquivo
 export async function salvarDadosHistoricos(dados: DadosHistoricos): Promise<void> {
-    await ensureDataDir();
-    await fs.writeFile(HISTORICO_FILE, JSON.stringify(dados, null, 2), 'utf-8');
+    // Save to DB: upsert contracts
+    try {
+        for (const c of dados.contratos) {
+            await prisma.historicoContrato.upsert({
+                where: { id: c.id },
+                create: {
+                    id: c.id,
+                    cnpjOrgao: c.cnpjOrgao,
+                    orgao: c.orgao,
+                    uf: c.uf,
+                    municipio: c.municipio || null,
+                    objeto: c.objeto,
+                    fornecedorCnpj: c.fornecedorCnpj,
+                    fornecedorNome: c.fornecedorNome,
+                    valorContratado: c.valorContratado,
+                    dataAssinatura: c.dataAssinatura,
+                    dataPublicacao: c.dataPublicacao,
+                    tipoContrato: c.tipoContrato,
+                    areaAtuacao: c.areaAtuacao,
+                    palavrasChave: c.palavrasChave,
+                },
+                update: {
+                    objeto: c.objeto,
+                    fornecedorNome: c.fornecedorNome,
+                    valorContratado: c.valorContratado,
+                    dataAssinatura: c.dataAssinatura,
+                    dataPublicacao: c.dataPublicacao,
+                    tipoContrato: c.tipoContrato,
+                    areaAtuacao: c.areaAtuacao,
+                    palavrasChave: c.palavrasChave,
+                }
+            });
+        }
+    } catch (err) {
+        // If DB unavailable, fallback to file
+        await ensureDataDir();
+        await fs.writeFile(HISTORICO_FILE, JSON.stringify(dados, null, 2), 'utf-8');
+    }
 }
 
 // Extrair palavras-chave de um texto

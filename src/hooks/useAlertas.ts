@@ -14,34 +14,18 @@ export function useAlertas() {
                 const data = await res.json();
                 if (Array.isArray(data)) {
                     setAlertas(data as AlertaLocal[]);
-                    saveToStorage(data as AlertaLocal[]);
                     return;
                 }
             } catch (e) {
-                const stored = loadFromStorage();
-                if (stored) setAlertas(stored);
+                // If API fails, keep alertas empty (no local persistence)
+                setAlertas([]);
             }
         }
         load();
     }, []);
 
-    function loadFromStorage(): AlertaLocal[] {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return [];
-            return JSON.parse(raw) as AlertaLocal[];
-        } catch (e) {
-            return [];
-        }
-    }
-
-    function saveToStorage(list: AlertaLocal[]) {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-        } catch (e) {
-            // ignore
-        }
-    }
+    function loadFromStorage(): AlertaLocal[] { return []; }
+    function saveToStorage(_: AlertaLocal[]) { /* noop - persistence moved to server */ }
 
     async function criarAlerta(partial: Partial<AlertaLocal>) {
         try {
