@@ -7,11 +7,10 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "build": "next build",
-    "vercel-build": "prisma generate && next build",
+    "vercel-build": "prisma migrate deploy && prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
-    "lint": "eslint",
-    "migrate:db-init": "node scripts/run-migrations.js"
+    "lint": "eslint"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
