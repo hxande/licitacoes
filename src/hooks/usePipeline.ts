@@ -9,35 +9,51 @@ const STORAGE_KEY = 'pipeline-licitacoes';
 export function usePipeline() {
     const [licitacoes, setLicitacoes] = useState<LicitacaoPipeline[]>([]);
     const [carregado, setCarregado] = useState(false);
-
-    // Carregar do localStorage
+    // Carregar do servidor
     useEffect(() => {
-        const salvo = localStorage.getItem(STORAGE_KEY);
-        if (salvo) {
+        async function load() {
             try {
-                setLicitacoes(JSON.parse(salvo));
-            } catch {
-                setLicitacoes([]);
+                const res = await fetch('/api/pipeline');
+                if (!res.ok) throw new Error('API unavailable');
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    setLicitacoes(data as LicitacaoPipeline[]);
+                    saveToStorage(data as LicitacaoPipeline[]);
+                    setCarregado(true);
+                    return;
+                }
+            } catch (e) {
+                const stored = loadFromStorage();
+                setLicitacoes(stored);
+            } finally {
+                setCarregado(true);
             }
         }
-        setCarregado(true);
+        load();
     }, []);
 
-    // Salvar no localStorage
-    useEffect(() => {
-        if (carregado) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(licitacoes));
+    function loadFromStorage(): LicitacaoPipeline[] {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return [];
+            return JSON.parse(raw) as LicitacaoPipeline[];
+        } catch (e) {
+            return [];
         }
-    }, [licitacoes, carregado]);
+    }
+
+    function saveToStorage(list: LicitacaoPipeline[]) {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        } catch (e) {
+            // ignore
+        }
+    }
 
     // Adicionar licitação ao pipeline
     const adicionarAoPipeline = useCallback((licitacao: Licitacao, status: StatusPipeline = 'encontrada') => {
         setLicitacoes(prev => {
-            // Verificar se já existe
-            if (prev.some(l => l.id === licitacao.id)) {
-                return prev;
-            }
-
+            if (prev.some(l => l.id === licitacao.id)) return prev;
             const nova: LicitacaoPipeline = {
                 id: licitacao.id,
                 objeto: licitacao.objeto,
@@ -51,38 +67,56 @@ export function usePipeline() {
                 adicionadoEm: new Date().toISOString(),
                 atualizadoEm: new Date().toISOString(),
             };
-
-            return [...prev, nova];
+            // persist server-side (fallback to local)
+            const next = [...prev, nova];
+            saveToStorage(next);
+            fetch('/api/pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(nova) }).catch(() => { saveToStorage(getCurrent()); });
+            return next;
         });
     }, []);
 
     // Mover licitação para outro status
     const moverParaStatus = useCallback((id: string, novoStatus: StatusPipeline) => {
-        setLicitacoes(prev => prev.map(l =>
-            l.id === id
-                ? { ...l, status: novoStatus, atualizadoEm: new Date().toISOString() }
-                : l
-        ));
+        setLicitacoes(prev => {
+            const next = prev.map(l => l.id === id ? { ...l, status: novoStatus, atualizadoEm: new Date().toISOString() } : l);
+            saveToStorage(next);
+            fetch('/api/pipeline', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status: novoStatus }) }).catch(() => { saveToStorage(getCurrent()); });
+            return next;
+        });
     }, []);
 
     // Remover do pipeline
     const removerDoPipeline = useCallback((id: string) => {
-        setLicitacoes(prev => prev.filter(l => l.id !== id));
+        setLicitacoes(prev => {
+            const next = prev.filter(l => l.id !== id);
+            saveToStorage(next);
+            fetch(`/api/pipeline?id=${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => { saveToStorage(getCurrent()); });
+            return next;
+        });
     }, []);
 
     // Atualizar observações
     const atualizarObservacoes = useCallback((id: string, observacoes: string) => {
-        setLicitacoes(prev => prev.map(l =>
-            l.id === id
-                ? { ...l, observacoes, atualizadoEm: new Date().toISOString() }
-                : l
-        ));
+        setLicitacoes(prev => {
+            const next = prev.map(l => l.id === id ? { ...l, observacoes, atualizadoEm: new Date().toISOString() } : l);
+            saveToStorage(next);
+            fetch('/api/pipeline', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, observacoes }) }).catch(() => { saveToStorage(getCurrent()); });
+            return next;
+        });
     }, []);
 
     // Verificar se licitação está no pipeline
     const estaNoIpeline = useCallback((id: string) => {
         return licitacoes.some(l => l.id === id);
     }, [licitacoes]);
+
+    function getCurrent(): LicitacaoPipeline[] {
+        try {
+            return localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY) as string) as LicitacaoPipeline[] : licitacoes;
+        } catch (e) {
+            return licitacoes;
+        }
+    }
 
     // Obter licitações por status
     const obterPorStatus = useCallback((status: StatusPipeline) => {

@@ -52,7 +52,7 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
     const [checklistEtapa, setChecklistEtapa] = useState<'analisando' | 'criar' | 'visualizar'>('criar');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Estados para aba de proposta
     const [proposta, setProposta] = useState<string | null>(null);
     const [propostaLoading, setPropostaLoading] = useState(false);
@@ -97,23 +97,20 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
     useEffect(() => {
         if (abaAtiva !== 'checklist') return;
 
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            try {
-                const checklists: Checklist[] = JSON.parse(saved);
-                const existente = checklists.find(c => c.licitacaoId === licitacao.id);
-                if (existente) {
-                    setChecklist(existente);
+        fetch(`/api/checklists?licitacaoId=${encodeURIComponent(licitacao.id)}`)
+            .then(r => r.json())
+            .then((data) => {
+                if (data) {
+                    setChecklist(data as Checklist);
                     setChecklistEtapa('visualizar');
-                    setError(null);
-                    return;
+                } else {
+                    setChecklistEtapa('criar');
                 }
-            } catch (e) {
+            })
+            .catch((e) => {
                 console.error('Erro ao carregar checklists:', e);
-            }
-        }
-        // Não encontrou checklist existente - mostrar tela de criar (aguarda clique)
-        setChecklistEtapa('criar');
+                setChecklistEtapa('criar');
+            });
     }, [abaAtiva, licitacao.id]);
 
     // Análise automática com IA
@@ -173,28 +170,10 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
         }
     }, [licitacao]);
 
-    // Salvar checklist no localStorage
+    // Salvar checklist via API
     const salvarChecklist = useCallback((checklistAtualizado: Checklist) => {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        let checklists: Checklist[] = [];
-
-        if (saved) {
-            try {
-                checklists = JSON.parse(saved);
-            } catch (e) {
-                console.error('Erro ao parsear checklists:', e);
-            }
-        }
-
-        const index = checklists.findIndex(c => c.id === checklistAtualizado.id);
-        if (index >= 0) {
-            checklists[index] = checklistAtualizado;
-        } else {
-            checklists.push(checklistAtualizado);
-        }
-
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(checklists));
         setChecklist(checklistAtualizado);
+        fetch('/api/checklists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(checklistAtualizado) }).catch(() => { });
     }, []);
 
     // Criar checklist com documentos padrão
@@ -346,8 +325,8 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
                     <button
                         onClick={() => setAbaAtiva('risco')}
                         className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 font-medium transition-colors ${abaAtiva === 'risco'
-                                ? 'text-orange-600 bg-white border-b-2 border-orange-500'
-                                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                            ? 'text-orange-600 bg-white border-b-2 border-orange-500'
+                            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
                             }`}
                     >
                         <Shield className="w-5 h-5" />
@@ -356,8 +335,8 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
                     <button
                         onClick={() => setAbaAtiva('checklist')}
                         className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 font-medium transition-colors ${abaAtiva === 'checklist'
-                                ? 'text-green-600 bg-white border-b-2 border-green-500'
-                                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                            ? 'text-green-600 bg-white border-b-2 border-green-500'
+                            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
                             }`}
                     >
                         <ClipboardList className="w-5 h-5" />
@@ -366,8 +345,8 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
                     <button
                         onClick={() => setAbaAtiva('proposta')}
                         className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 font-medium transition-colors ${abaAtiva === 'proposta'
-                                ? 'text-purple-600 bg-white border-b-2 border-purple-500'
-                                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                            ? 'text-purple-600 bg-white border-b-2 border-purple-500'
+                            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
                             }`}
                     >
                         <FileText className="w-5 h-5" />

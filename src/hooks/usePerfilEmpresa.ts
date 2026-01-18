@@ -12,33 +12,59 @@ export function usePerfilEmpresa() {
 
     // Carregar perfil do localStorage
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                try {
-                    setPerfil(JSON.parse(saved));
-                } catch (e) {
-                    console.error('Erro ao carregar perfil:', e);
+        async function load() {
+            try {
+                const res = await fetch('/api/perfil-empresa');
+                if (!res.ok) throw new Error('API unavailable');
+                const data = await res.json();
+                if (data) {
+                    const p = data.dados || data;
+                    setPerfil(p);
+                    saveToStorage(p);
+                    setLoaded(true);
+                    return;
                 }
+            } catch (e) {
+                const stored = loadFromStorage();
+                setPerfil(stored);
+            } finally {
+                setLoaded(true);
             }
-            setLoaded(true);
         }
+        load();
     }, []);
+
+    function loadFromStorage(): PerfilEmpresa | null {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return null;
+            return JSON.parse(raw) as PerfilEmpresa;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function saveToStorage(p: PerfilEmpresa | null) {
+        try {
+            if (p) localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+            else localStorage.removeItem(STORAGE_KEY);
+        } catch (e) {
+            // ignore
+        }
+    }
 
     // Salvar perfil
     const salvarPerfil = useCallback((novoPerfil: PerfilEmpresa) => {
         setPerfil(novoPerfil);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(novoPerfil));
-        }
+        saveToStorage(novoPerfil);
+        fetch('/api/perfil-empresa', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(novoPerfil) }).catch(() => { saveToStorage(novoPerfil); });
     }, []);
 
     // Limpar perfil
     const limparPerfil = useCallback(() => {
         setPerfil(null);
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem(STORAGE_KEY);
-        }
+        saveToStorage(null);
+        fetch('/api/perfil-empresa', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).catch(() => { saveToStorage(null); });
     }, []);
 
     // Calcular match com uma licitação

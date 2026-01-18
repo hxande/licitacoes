@@ -53,25 +53,24 @@ export function ModalChecklist({ isOpen, onClose, licitacao }: ModalChecklistPro
     // Carregar checklist existente ou iniciar análise automática
     useEffect(() => {
         if (isOpen && licitacao) {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                try {
-                    const checklists: Checklist[] = JSON.parse(saved);
-                    const existente = checklists.find(c => c.licitacaoId === licitacao.id);
-                    if (existente) {
-                        setChecklist(existente);
+            fetch(`/api/checklists?licitacaoId=${encodeURIComponent(licitacao.id)}`)
+                .then(r => r.json())
+                .then((data) => {
+                    if (data) {
+                        setChecklist(data as Checklist);
                         setEtapa('visualizar');
-                        setError(null);
-                        return;
+                    } else {
+                        setChecklist(null);
+                        setEtapa('analisando');
+                        analisarComIA();
                     }
-                } catch (e) {
-                    console.error('Erro ao carregar checklists:', e);
-                }
-            }
-            // Não encontrou checklist existente - iniciar análise automática
-            setChecklist(null);
-            setError(null);
-            analisarComIA();
+                })
+                .catch((e) => {
+                    console.error('Erro ao carregar checklist:', e);
+                    setChecklist(null);
+                    setEtapa('analisando');
+                    analisarComIA();
+                });
         }
     }, [isOpen, licitacao]);
 
@@ -135,28 +134,11 @@ export function ModalChecklist({ isOpen, onClose, licitacao }: ModalChecklistPro
         }
     }, [licitacao]);
 
-    // Salvar checklist no localStorage
+    // Salvar checklist via API
     const salvarChecklist = useCallback((checklistAtualizado: Checklist) => {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        let checklists: Checklist[] = [];
-
-        if (saved) {
-            try {
-                checklists = JSON.parse(saved);
-            } catch (e) {
-                console.error('Erro ao parsear checklists:', e);
-            }
-        }
-
-        const index = checklists.findIndex(c => c.id === checklistAtualizado.id);
-        if (index >= 0) {
-            checklists[index] = checklistAtualizado;
-        } else {
-            checklists.push(checklistAtualizado);
-        }
-
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(checklists));
+        // optimistic local update
         setChecklist(checklistAtualizado);
+        fetch('/api/checklists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(checklistAtualizado) }).catch(() => { });
     }, []);
 
     // Criar checklist com documentos padrão

@@ -34,3 +34,23 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+### Neon / Server Action example
+
+This repo includes a small example Server Action that writes a `comment` into Postgres via the `@neondatabase/serverless` driver.
+
+- Page: `app/neon-example/page.tsx`
+- Requirements: set `DATABASE_URL` or `POSTGRES_URL` in your environment (or Vercel envs)
+- Create table (Neon SQL editor):
+
+```sql
+CREATE TABLE IF NOT EXISTS comments (comment TEXT);
+```
+
+- Run locally:
+```bash
+npm install
+export $(grep -v '^#' .env.local | xargs)
+npm run dev
+# then open http://localhost:3000/neon-example
+```
