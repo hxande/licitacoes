@@ -4,33 +4,40 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("LICITACOES__POSTGRES_URL")
+  url      = env("DATABASE_URL")
 }
 
 model Alerta {
-  id           BigInt   @id @default(autoincrement())
-  userId       BigInt
-  nome         String
-  filtros      Json     @default("{}")
-  periodicidade String  @default("diario")
-  criadoEm     DateTime @default(now())
+  id            BigInt   @id @default(autoincrement())
+  userId        BigInt
+  nome          String
+  filtros       Json     @default("{}")
+  periodicidade String   @default("diario")
+  criadoEm      DateTime @default(now())
+
+  @@index([userId])
+  @@index([criadoEm])
 }
 
 model Favorito {
   userId      BigInt
   licitacaoId String
-  criadoEm   DateTime @default(now())
+  criadoEm    DateTime @default(now())
+
   @@id([userId, licitacaoId])
+  @@index([userId])
 }
 
 model PerfilEmpresa {
-  userId       BigInt @id
-  dados         Json  @default("{}")
+  userId        BigInt   @id
+  dados         Json     @default("{}")
   atualizadoEm  DateTime @default(now())
+
+  @@index([userId])
 }
 
 model HistoricoContrato {
-  id                String  @id
+  id                String   @id
   cnpjOrgao         String
   orgao             String
   uf                String
@@ -38,40 +45,50 @@ model HistoricoContrato {
   objeto            String
   fornecedorCnpj    String
   fornecedorNome    String
-  valorContratado   Float
-  dataAssinatura    String
-  dataPublicacao    String
-  tipoContrato      String
-  areaAtuacao       String
-  palavrasChave     Json
+  valorContratado   Float    @default(0)
+  dataAssinatura    String?
+  dataPublicacao    String?
+  tipoContrato      String?
+  areaAtuacao       String?
+  palavrasChave     Json     @default("[]")
+
+  @@index([fornecedorCnpj])
+  @@index([dataPublicacao])
 }
 
 model Pipeline {
-  id             String @id
-  userId         BigInt
-  objeto         String
-  orgao          String
-  uf             String
-  valorEstimado  Float?
-  dataAbertura   String?
-  modalidade     String?
-  cnpjOrgao      String?
-  status         String?
-  observacoes    String?
-  criadoEm       DateTime @default(now())
-  atualizadoEm   DateTime @default(now())
+  id              String   @id
+  userId          BigInt
+  objeto          String
+  orgao           String
+  uf              String
+  valorEstimado   Float?
+  dataAbertura    String?
+  modalidade      String?
+  cnpjOrgao       String?
+  status          String?
+  observacoes     String?
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @default(now())
+
+  @@index([userId])
+  @@index([criadoEm])
 }
 
 model Checklist {
-  id            String @id
-  userId        BigInt
-  titulo        String?
-  licitacaoId   String?
-  orgao         String?
-  objeto        String?
-  dataAbertura  String?
-  documentos    Json   @default("[]")
-  criadoEm      DateTime @default(now())
-  atualizadoEm  DateTime @default(now())
-}
+  id             String   @id
+  userId         BigInt
+  titulo         String?
+  licitacaoId    String?
+  orgao          String?
+  objeto         String?
+  dataAbertura   String?
+  documentos     Json     @default("[]")
+  criadoEm       DateTime @default(now())
+  atualizadoEm   DateTime @default(now())
 
+  @@index([userId])
+  @@index([licitacaoId])
+  @@index([userId, licitacaoId])
+  @@index([criadoEm])
+}

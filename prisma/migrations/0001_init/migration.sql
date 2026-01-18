@@ -69,16 +69,21 @@ CREATE TABLE IF NOT EXISTS "Checklist" (
   "atualizadoEm" TIMESTAMPTZ DEFAULT now()
 );
 
--- Optional indexes for faster lookups
+-- Indexes
 CREATE INDEX IF NOT EXISTS idx_alerta_user ON "Alerta" ("userId");
+CREATE INDEX IF NOT EXISTS idx_alerta_criado ON "Alerta" ("criadoEm");
+
 CREATE INDEX IF NOT EXISTS idx_favorito_user ON "Favorito" ("userId");
+
 CREATE INDEX IF NOT EXISTS idx_perfilempresa_user ON "PerfilEmpresa" ("userId");
+
 CREATE INDEX IF NOT EXISTS idx_historico_cnpj ON "HistoricoContrato" ("fornecedorCnpj");
+CREATE INDEX IF NOT EXISTS idx_historico_data_publicacao ON "HistoricoContrato" ("dataPublicacao");
+
 CREATE INDEX IF NOT EXISTS idx_pipeline_user ON "Pipeline" ("userId");
 CREATE INDEX IF NOT EXISTS idx_pipeline_adicionado ON "Pipeline" ("criadoEm");
-CREATE INDEX IF NOT EXISTS idx_alerta_criado ON "Alerta" ("criadoEm");
-CREATE INDEX IF NOT EXISTS idx_historico_data_publicacao ON "HistoricoContrato" ("dataPublicacao");
-CREATE INDEX IF NOT EXISTS idx_checklists_user_licitacao ON "Checklist" ("userId", "licitacaoId");
+
 CREATE INDEX IF NOT EXISTS idx_checklists_user ON "Checklist" ("userId");
 CREATE INDEX IF NOT EXISTS idx_checklists_licitacao ON "Checklist" ("licitacaoId");
+CREATE INDEX IF NOT EXISTS idx_checklists_user_licitacao ON "Checklist" ("userId", "licitacaoId");
 CREATE INDEX IF NOT EXISTS idx_checklists_criado ON "Checklist" ("criadoEm");
