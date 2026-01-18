@@ -8,9 +8,9 @@ const USER_ID = 999;
 export async function GET() {
     try {
         await ensureTables();
-        const res = await withReconnect((r: any) => r.perfilEmpresa.findUnique({ where: { userId: BigInt(USER_ID) as any } })) as any | null;
+        const res = await withReconnect((r: any) => r.perfil_empresa.findUnique({ where: { user_id: BigInt(USER_ID) as any } })) as any | null;
         if (!res) return jsonResponse(null);
-        return jsonResponse({ dados: (res as any).dados, atualizadoEm: (res as any).atualizadoEm });
+        return jsonResponse({ dados: (res as any).dados, atualizado_em: (res as any).atualizado_em });
     } catch (err) {
         console.error(err);
         return NextResponse.json({ error: 'Erro ao obter perfil' }, { status: 500 });
@@ -20,10 +20,10 @@ export async function GET() {
 export async function PUT(req: Request) {
     try {
         const dados = await req.json();
-        await withReconnect((r: any) => r.perfilEmpresa.upsert({
-            where: { userId: BigInt(USER_ID) as any },
-            create: { userId: BigInt(USER_ID) as any, dados },
-            update: { dados, atualizadoEm: new Date() },
+        await withReconnect((r: any) => r.perfil_empresa.upsert({
+            where: { user_id: BigInt(USER_ID) as any },
+            create: { user_id: BigInt(USER_ID) as any, dados },
+            update: { dados, atualizado_em: new Date() },
         }));
         return NextResponse.json({ ok: true });
     } catch (err) {
