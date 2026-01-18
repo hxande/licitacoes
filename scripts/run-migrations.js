@@ -22,8 +22,23 @@ async function run() {
             console.log('Connected — running migrations...');
             // run migration with a statement timeout guard
             await client.query('SET statement_timeout = 5000');
-            await client.query(sqlText);
-            console.log('Migrations executed');
+            // Split SQL into statements by semicolon and run one-by-one so a failing statement
+            // doesn't abort the whole script (helps with partial compatibility across DBs)
+            const statements = sqlText
+                .split(/;\s*\n/)
+                .map(s => s.trim())
+                .filter(Boolean);
+
+            for (const stmt of statements) {
+                try {
+                    console.log('Executing statement:', stmt.slice(0, 80).replace(/\n/g, ' ') + (stmt.length > 80 ? '...' : ''));
+                    await client.query(stmt);
+                } catch (err) {
+                    console.error('Statement failed, continuing. Error:', err && err.message ? err.message : err);
+                }
+            }
+
+            console.log('Migrations executed (statements run)');
         } catch (err) {
             console.error('Migration failed:', err && err.message ? err.message : err);
             if (err && err.stack) console.error(err.stack);

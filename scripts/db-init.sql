@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS "Checklist" (
   orgao TEXT,
   objeto TEXT,
   "dataAbertura" TEXT,
-  documentos JSONB DEFAULT '[]',
+  documentos JSONB DEFAULT '[]'::jsonb,
   "criadoEm" TIMESTAMP WITH TIME ZONE DEFAULT now(),
   "atualizadoEm" TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
