@@ -32,6 +32,14 @@ jobs:
           echo "$DB_CA_B64" | base64 --decode > /tmp/db_ca.pem
           ls -l /tmp/db_ca.pem
 
+      - name: Run resilient SQL runner (db-init.sql)
+        env:
+          DATABASE_URL: ${{ secrets.LICITACOES__POSTGRES_URL }}
+          NODE_EXTRA_CA_CERTS: /tmp/db_ca.pem
+        run: |
+          echo "Running resilient DB init script..."
+          node scripts/run-migrations.js
+
       - name: Apply Prisma migrations
         env:
           DATABASE_URL: ${{ secrets.LICITACOES__POSTGRES_URL }}
