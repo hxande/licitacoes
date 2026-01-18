@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS "Alerta" (
 CREATE TABLE IF NOT EXISTS "Favorito" (
   "userId" BIGINT NOT NULL,
   "licitacaoId" TEXT NOT NULL,
-  "marcadoEm" TIMESTAMPTZ DEFAULT now(),
+  "criadoEm" TIMESTAMPTZ DEFAULT now(),
   PRIMARY KEY ("userId", "licitacaoId")
 );
 
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS "Pipeline" (
   "cnpjOrgao" TEXT,
   status TEXT,
   observacoes TEXT,
-  "adicionadoEm" TIMESTAMPTZ DEFAULT now(),
+  "criadoEm" TIMESTAMPTZ DEFAULT now(),
   "atualizadoEm" TIMESTAMPTZ DEFAULT now()
 );
 
@@ -75,7 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_favorito_user ON "Favorito" ("userId");
 CREATE INDEX IF NOT EXISTS idx_perfilempresa_user ON "PerfilEmpresa" ("userId");
 CREATE INDEX IF NOT EXISTS idx_historico_cnpj ON "HistoricoContrato" ("fornecedorCnpj");
 CREATE INDEX IF NOT EXISTS idx_pipeline_user ON "Pipeline" ("userId");
-CREATE INDEX IF NOT EXISTS idx_pipeline_adicionado ON "Pipeline" ("adicionadoEm");
+CREATE INDEX IF NOT EXISTS idx_pipeline_adicionado ON "Pipeline" ("criadoEm");
 CREATE INDEX IF NOT EXISTS idx_alerta_criado ON "Alerta" ("criadoEm");
 CREATE INDEX IF NOT EXISTS idx_historico_data_publicacao ON "HistoricoContrato" ("dataPublicacao");
 CREATE INDEX IF NOT EXISTS idx_checklists_user_licitacao ON "Checklist" ("userId", "licitacaoId");

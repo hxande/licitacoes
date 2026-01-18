@@ -47,7 +47,7 @@ export function usePipeline() {
                 modalidade: licitacao.modalidade,
                 cnpjOrgao: licitacao.cnpjOrgao,
                 status,
-                adicionadoEm: new Date().toISOString(),
+                criadoEm: new Date().toISOString(),
                 atualizadoEm: new Date().toISOString(),
             };
             const next = [...prev, nova];

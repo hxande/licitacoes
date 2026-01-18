@@ -11,7 +11,7 @@ export async function GET() {
         await ensureTables();
         const ok = await isDbAvailable();
         if (!ok) return NextResponse.json([], { status: 503 });
-        const rows = await withReconnect((p: any) => p.pipeline.findMany({ where: { userId: BigInt(USER_ID) }, orderBy: { adicionadoEm: 'desc' } })) as any[];
+        const rows = await withReconnect((p: any) => p.pipeline.findMany({ where: { userId: BigInt(USER_ID) }, orderBy: { criadoEm: 'desc' } })) as any[];
         return jsonResponse(rows || []);
     } catch (err) {
         console.error(err);

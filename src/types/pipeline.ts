@@ -16,7 +16,7 @@ export interface LicitacaoPipeline {
     valorEstimado?: number;
     dataAbertura?: string;
     status: StatusPipeline;
-    adicionadoEm: string;
+    criadoEm: string;
     atualizadoEm: string;
     observacoes?: string;
     // Dados opcionais para referência

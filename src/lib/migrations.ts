@@ -20,7 +20,7 @@ export async function ensureTables() {
     await sql`CREATE TABLE IF NOT EXISTS "Favorito" (
           "userId" BIGINT NOT NULL,
           "licitacaoId" TEXT NOT NULL,
-          "marcadoEm" TIMESTAMPTZ DEFAULT now(),
+          "criadoEm" TIMESTAMPTZ DEFAULT now(),
           PRIMARY KEY ("userId", "licitacaoId")
         )`;
 
@@ -60,12 +60,12 @@ export async function ensureTables() {
       "cnpjOrgao" TEXT,
       status TEXT,
       observacoes TEXT,
-      "adicionadoEm" TIMESTAMPTZ DEFAULT now(),
+      "criadoEm" TIMESTAMPTZ DEFAULT now(),
       "atualizadoEm" TIMESTAMPTZ DEFAULT now()
     )`;
     // Indexes for Pipeline
     await sql`CREATE INDEX IF NOT EXISTS idx_pipeline_user ON "Pipeline" ("userId")`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_pipeline_adicionado ON "Pipeline" ("adicionadoEm")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_pipeline_adicionado ON "Pipeline" ("criadoEm")`;
     // Alerta indexes
     await sql`CREATE INDEX IF NOT EXISTS idx_alerta_criado ON "Alerta" ("criadoEm")`;
     // Historico indexes

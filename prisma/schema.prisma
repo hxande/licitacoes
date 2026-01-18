@@ -19,7 +19,7 @@ model Alerta {
 model Favorito {
   userId      BigInt
   licitacaoId String
-  marcadoEm   DateTime @default(now())
+  criadoEm   DateTime @default(now())
   @@id([userId, licitacaoId])
 }
 
@@ -58,7 +58,7 @@ model Pipeline {
   cnpjOrgao      String?
   status         String?
   observacoes    String?
-  adicionadoEm   DateTime @default(now())
+  criadoEm       DateTime @default(now())
   atualizadoEm   DateTime @default(now())
 }
 
