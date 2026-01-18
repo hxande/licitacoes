@@ -28,22 +28,22 @@ async function ensureDataDir() {
 export async function carregarDadosHistoricos(): Promise<DadosHistoricos | null> {
     // Prefer DB if available
     try {
-        const rows = await withReconnect(r => r.historicoContrato.findMany({ orderBy: { dataPublicacao: 'desc' } }));
-        const contratos = rows.map(r => ({
+        const rows: any = await withReconnect((r: any) => r.historico_contrato.findMany({ orderBy: { data_publicacao: 'desc' } }));
+        const contratos = rows.map((r: any) => ({
             id: r.id,
-            cnpjOrgao: r.cnpjOrgao,
+            cnpjOrgao: r.cnpj_orgao,
             orgao: r.orgao,
             uf: r.uf,
             municipio: r.municipio || '',
             objeto: r.objeto,
-            fornecedorCnpj: r.fornecedorCnpj,
-            fornecedorNome: r.fornecedorNome,
-            valorContratado: r.valorContratado,
-            dataAssinatura: r.dataAssinatura,
-            dataPublicacao: r.dataPublicacao,
-            tipoContrato: r.tipoContrato,
-            areaAtuacao: r.areaAtuacao,
-            palavrasChave: r.palavrasChave as string[],
+            fornecedorCnpj: r.fornecedor_cnpj,
+            fornecedorNome: r.fornecedor_nome,
+            valorContratado: r.valor_contratado,
+            dataAssinatura: r.data_assinatura,
+            dataPublicacao: r.data_publicacao,
+            tipoContrato: r.tipo_contrato,
+            areaAtuacao: r.area_atuacao,
+            palavrasChave: r.palavras_chave as string[],
         }));
 
         return {
@@ -72,34 +72,34 @@ export async function salvarDadosHistoricos(dados: DadosHistoricos): Promise<voi
     // Save to DB: upsert contracts
     try {
         for (const c of dados.contratos) {
-            await withReconnect(r => r.historicoContrato.upsert({
+            await withReconnect((r: any) => r.historico_contrato.upsert({
                 where: { id: c.id },
                 create: {
                     id: c.id,
-                    cnpjOrgao: c.cnpjOrgao,
+                    cnpj_orgao: c.cnpjOrgao,
                     orgao: c.orgao,
                     uf: c.uf,
                     municipio: c.municipio || null,
                     objeto: c.objeto,
-                    fornecedorCnpj: c.fornecedorCnpj,
-                    fornecedorNome: c.fornecedorNome,
-                    valorContratado: c.valorContratado,
-                    dataAssinatura: c.dataAssinatura,
-                    dataPublicacao: c.dataPublicacao,
-                    tipoContrato: c.tipoContrato,
-                    areaAtuacao: c.areaAtuacao,
-                    palavrasChave: c.palavrasChave,
+                    fornecedor_cnpj: c.fornecedorCnpj,
+                    fornecedor_nome: c.fornecedorNome,
+                    valor_contratado: c.valorContratado,
+                    data_assinatura: c.dataAssinatura,
+                    data_publicacao: c.dataPublicacao,
+                    tipo_contrato: c.tipoContrato,
+                    area_atuacao: c.areaAtuacao,
+                    palavras_chave: c.palavrasChave,
                 },
                 update: {
                     objeto: c.objeto,
-                    fornecedorNome: c.fornecedorNome,
-                    valorContratado: c.valorContratado,
-                    dataAssinatura: c.dataAssinatura,
-                    dataPublicacao: c.dataPublicacao,
-                    tipoContrato: c.tipoContrato,
-                    areaAtuacao: c.areaAtuacao,
-                    palavrasChave: c.palavrasChave,
-                }
+                    fornecedor_nome: c.fornecedorNome,
+                    valor_contratado: c.valorContratado,
+                    data_assinatura: c.dataAssinatura,
+                    data_publicacao: c.dataPublicacao,
+                    tipo_contrato: c.tipoContrato,
+                    area_atuacao: c.areaAtuacao,
+                    palavras_chave: c.palavrasChave,
+                },
             }));
         }
     } catch (err) {
