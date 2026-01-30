@@ -73,21 +73,19 @@ export interface PNCPResponse {
 }
 
 export const MODALIDADES: Record<number, string> = {
-    1: 'Leilão - Lei 14.133/2021',
+    1: 'Leilão - Eletrônico',
     2: 'Diálogo Competitivo',
     3: 'Concurso',
-    4: 'Concorrência - Lei 14.133/2021',
-    5: 'Pregão - Lei 14.133/2021',
-    6: 'Dispensa de Licitação',
-    7: 'Inexigibilidade',
-    8: 'Pregão - Lei 10.520/2002',
-    9: 'Concorrência - Lei 8.666/1993',
-    10: 'Tomada de Preços - Lei 8.666/1993',
-    11: 'Convite - Lei 8.666/1993',
-    12: 'Leilão - Lei 8.666/1993',
-    13: 'Manifestação de Interesse',
-    14: 'Pré-qualificação',
-    15: 'Credenciamento',
+    4: 'Concorrência - Eletrônica',
+    5: 'Concorrência - Presencial',
+    6: 'Pregão - Eletrônico',
+    7: 'Pregão - Presencial',
+    8: 'Dispensa de Licitação',
+    9: 'Inexigibilidade',
+    10: 'Manifestação de Interesse',
+    11: 'Pré-qualificação',
+    12: 'Credenciamento',
+    13: 'Leilão - Presencial',
 };
 
 export const UFS = [

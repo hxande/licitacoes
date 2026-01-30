@@ -2,8 +2,8 @@ import { PNCPResponse, MODALIDADES, Licitacao, PNCPContratacao } from '@/types/l
 
 const PNCP_BASE_URL = 'https://pncp.gov.br/api/consulta/v1';
 
-// Todas as modalidades disponíveis
-const TODAS_MODALIDADES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+// Todas as modalidades disponíveis (1..13)
+const TODAS_MODALIDADES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 
 export function transformPNCPToLicitacao(item: PNCPContratacao): Licitacao {
     const objeto = item.objetoCompra;
@@ -173,6 +173,7 @@ export async function buscarLicitacoesPNCP(params: {
             });
 
             if (response.ok) {
+                console.log(response)
                 const text = await response.text();
                 if (!text || text.trim() === '') {
                     console.warn(`[PNCP] Empty response for modalidade ${modalidade}`);
@@ -180,6 +181,7 @@ export async function buscarLicitacoesPNCP(params: {
                 }
                 try {
                     const rawData = JSON.parse(text);
+                    console.log(rawData);
                     return {
                         data: rawData.data || [],
                         totalRegistros: rawData.totalRegistros || 0,

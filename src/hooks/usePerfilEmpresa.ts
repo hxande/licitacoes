@@ -360,21 +360,19 @@ export function usePerfilEmpresa() {
 // Helper para extrair ID da modalidade do nome
 function getModalidadeId(modalidade: string): number {
     const modalidadeMap: Record<string, number> = {
-        'Leilão - Lei 14.133/2021': 1,
+        'Leilão - Eletrônico': 1,
         'Diálogo Competitivo': 2,
         'Concurso': 3,
-        'Concorrência - Lei 14.133/2021': 4,
-        'Pregão - Lei 14.133/2021': 5,
-        'Dispensa de Licitação': 6,
-        'Inexigibilidade': 7,
-        'Pregão - Lei 10.520/2002': 8,
-        'Concorrência - Lei 8.666/1993': 9,
-        'Tomada de Preços - Lei 8.666/1993': 10,
-        'Convite - Lei 8.666/1993': 11,
-        'Leilão - Lei 8.666/1993': 12,
-        'Manifestação de Interesse': 13,
-        'Pré-qualificação': 14,
-        'Credenciamento': 15,
+        'Concorrência - Eletrônica': 4,
+        'Concorrência - Presencial': 5,
+        'Pregão - Eletrônico': 6,
+        'Pregão - Presencial': 7,
+        'Dispensa de Licitação': 8,
+        'Inexigibilidade': 9,
+        'Manifestação de Interesse': 10,
+        'Pré-qualificação': 11,
+        'Credenciamento': 12,
+        'Leilão - Presencial': 13,
     };
     return modalidadeMap[modalidade] || 0;
 }

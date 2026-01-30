@@ -13,8 +13,8 @@ import { PNCPContratacao, MODALIDADES } from '@/types/licitacao';
 
 const PNCP_BASE_URL = 'https://pncp.gov.br/api/consulta/v1';
 
-// Todas as modalidades disponíveis (igual ao pncp.ts)
-const TODAS_MODALIDADES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+// Todas as modalidades disponíveis (1..13)
+const TODAS_MODALIDADES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 
 // Categoriza a área de atuação com base no objeto da licitação (igual ao pncp.ts)
 function categorizarArea(objeto: string): string {
