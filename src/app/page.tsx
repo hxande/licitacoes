@@ -11,7 +11,7 @@ import { useLicitacoes } from '@/hooks/useLicitacoes';
 import { useFavoritos } from '@/hooks/useFavoritos';
 import { usePerfilEmpresa } from '@/hooks/usePerfilEmpresa';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { Building2, Target, Zap, Heart, BarChart3, UserCog, Sparkles, Kanban, User, Loader2, FileUp } from 'lucide-react';
+import { Building2, Target, Zap, Heart, BarChart3, UserCog, Sparkles, Kanban, User, Loader2, FileUp, BrainCircuit } from 'lucide-react';
 
 export default function Home() {
   const router = useRouter();
@@ -102,6 +102,13 @@ export default function Home() {
               >
                 <Kanban className="w-4 h-4" />
                 Acompanhamento
+              </Link>
+              <Link
+                href="/recomendacoes"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition text-sm font-medium shadow-sm"
+              >
+                <BrainCircuit className="w-4 h-4" />
+                IA Recomenda
               </Link>
               <Link
                 href="/dashboard"
