@@ -20,7 +20,7 @@ interface UseLicitacoesReturn {
     carregarMais: () => Promise<void>;
 }
 
-const ITENS_POR_PAGINA = 20;
+const ITENS_POR_PAGINA = 50;
 
 export function useLicitacoes(): UseLicitacoesReturn {
     const [licitacoes, setLicitacoes] = useState<Licitacao[]>([]);
