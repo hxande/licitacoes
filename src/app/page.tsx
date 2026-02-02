@@ -78,55 +78,55 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setModalResumoAberto(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:from-cyan-600 hover:to-blue-600 transition text-sm font-medium shadow-sm"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-w-[140px] bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition text-sm font-medium shadow-sm"
               >
-                <FileUp className="w-4 h-4" />
+                <FileUp className="w-4 h-4 text-cyan-600" />
                 Resumir PDF
               </button>
               <button
                 onClick={() => setModalPerfilAberto(true)}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition text-sm font-medium shadow-sm ${temPerfil
-                  ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 min-w-[140px] rounded-lg transition text-sm font-medium shadow-sm border ${temPerfil
+                  ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-200 hover:border-gray-300'
                   }`}
               >
-                <UserCog className="w-4 h-4" />
-                {temPerfil ? 'Perfil Configurado' : 'Configurar Perfil'}
+                <UserCog className={`w-4 h-4 ${temPerfil ? 'text-green-600' : 'text-gray-500'}`} />
+                {temPerfil ? 'Perfil Empresa' : 'Config. Perfil'}
               </button>
               <Link
                 href="/pipeline"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition text-sm font-medium shadow-sm"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-w-[140px] bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition text-sm font-medium shadow-sm"
               >
-                <Kanban className="w-4 h-4" />
-                Acompanhamento
+                <Kanban className="w-4 h-4 text-amber-600" />
+                Acompanhar
               </Link>
               <Link
                 href="/recomendacoes"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition text-sm font-medium shadow-sm"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-w-[140px] bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition text-sm font-medium shadow-sm"
               >
-                <BrainCircuit className="w-4 h-4" />
+                <BrainCircuit className="w-4 h-4 text-purple-600" />
                 IA Recomenda
               </Link>
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition text-sm font-medium shadow-sm"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-w-[140px] bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition text-sm font-medium shadow-sm"
               >
-                <BarChart3 className="w-4 h-4" />
+                <BarChart3 className="w-4 h-4 text-indigo-600" />
                 Dashboard
               </Link>
               {/* Botão Perfil Usuário */}
               <Link
                 href="/perfil"
-                className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 min-w-[140px] bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition text-sm font-medium shadow-sm"
                 title="Meu Perfil"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-medium">
                   {usuario?.nome?.charAt(0).toUpperCase() || usuario?.email?.charAt(0).toUpperCase() || 'U'}
                 </div>
-                <span className="text-sm text-gray-700 font-medium hidden sm:block">
+                <span className="text-sm text-gray-700 font-medium">
                   {usuario?.nome?.split(' ')[0] || 'Perfil'}
                 </span>
               </Link>
