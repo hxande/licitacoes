@@ -5,30 +5,30 @@ import { buscarLicitacoesPNCP, transformPNCPToLicitacao } from '@/services/pncp'
 import { withReconnect } from '@/lib/prisma';
 import { PerfilEmpresa } from '@/types/empresa';
 import { Licitacao } from '@/types/licitacao';
-import { 
-    AnaliseAgente, 
-    RecomendacaoLicitacao, 
+import {
+    AnaliseAgente,
+    RecomendacaoLicitacao,
     ConfiguracaoAgente,
-    RequestAgente 
+    RequestAgente
 } from '@/types/agente-recomendacao';
+import { getUsuarioFromRequest, respostaNaoAutorizado } from '@/lib/auth';
 
-const USER_ID = 999;
 const VERSAO_AGENTE = '1.0.0';
 
 // Buscar licitações recentes do PNCP
 async function buscarLicitacoesRecentes(
-    perfil: PerfilEmpresa, 
+    perfil: PerfilEmpresa,
     config: ConfiguracaoAgente
 ): Promise<Licitacao[]> {
     const hoje = new Date();
     const dataInicial = new Date();
     dataInicial.setDate(hoje.getDate() - 7); // Últimos 7 dias
-    
+
     const dataFinal = new Date();
     dataFinal.setDate(hoje.getDate() + 60); // Próximos 60 dias para abertura
-    
+
     const formatDate = (d: Date) => d.toISOString().split('T')[0].replace(/-/g, '');
-    
+
     try {
         const resultado = await buscarLicitacoesPNCP({
             dataInicial: formatDate(dataInicial),
@@ -36,9 +36,9 @@ async function buscarLicitacoesRecentes(
             pagina: 1,
             tamanhoPagina: 50,
         });
-        
+
         let licitacoes = resultado.data.map(transformPNCPToLicitacao);
-        
+
         // Filtrar por estados de atuação da empresa (se especificados)
         if (perfil.estadosAtuacao && perfil.estadosAtuacao.length > 0) {
             // Priorizar estados de atuação, mas não excluir outros
@@ -48,26 +48,26 @@ async function buscarLicitacoesRecentes(
                 return bNoEstado - aNoEstado;
             });
         }
-        
+
         // Filtrar por faixa de valor (com margem de tolerância de 2x)
         if (perfil.valorMaximo) {
-            licitacoes = licitacoes.filter(l => 
+            licitacoes = licitacoes.filter(l =>
                 !l.valorEstimado || l.valorEstimado <= perfil.valorMaximo! * 2
             );
         }
-        
+
         // Excluir modalidades se configurado
         if (config.filtros?.excluirModalidades?.length) {
             const modalidadesExcluir = config.filtros.excluirModalidades.map(String);
-            licitacoes = licitacoes.filter(l => 
+            licitacoes = licitacoes.filter(l =>
                 !modalidadesExcluir.some(m => l.modalidade.includes(m))
             );
         }
-        
+
         // Limitar quantidade para análise
         const maxAnalise = config.maxLicitacoesAnalise || 20;
         return licitacoes.slice(0, maxAnalise);
-        
+
     } catch (error) {
         console.error('Erro ao buscar licitações:', error);
         return [];
@@ -207,23 +207,26 @@ Analise estas licitações e retorne as melhores recomendações para a empresa 
 
 export async function POST(request: NextRequest) {
     try {
+        const usuario = await getUsuarioFromRequest(request);
+        if (!usuario) return respostaNaoAutorizado();
+
         const body: RequestAgente = await request.json();
         const config: ConfiguracaoAgente = body.configuracao || {};
-        
+
         // 1. Buscar perfil da empresa
-        const perfilRes = await withReconnect((r: any) => 
-            r.perfil_empresa.findUnique({ where: { user_id: BigInt(USER_ID) as any } })
+        const perfilRes = await withReconnect((r: any) =>
+            r.perfil_empresa.findUnique({ where: { user_id: usuario.userId as any } })
         ) as any | null;
-        
+
         if (!perfilRes || !perfilRes.dados) {
             return NextResponse.json({
                 success: false,
                 error: 'Perfil da empresa não configurado. Configure o perfil primeiro para usar o agente de recomendações.'
             }, { status: 400 });
         }
-        
+
         const perfil: PerfilEmpresa = perfilRes.dados;
-        
+
         // Validar dados mínimos do perfil
         if (!perfil.areasAtuacao?.length && !perfil.capacidades?.length) {
             return NextResponse.json({
@@ -231,10 +234,10 @@ export async function POST(request: NextRequest) {
                 error: 'Perfil incompleto. Adicione pelo menos áreas de atuação ou capacidades técnicas.'
             }, { status: 400 });
         }
-        
+
         // 2. Buscar licitações recentes
         const licitacoes = await buscarLicitacoesRecentes(perfil, config);
-        
+
         if (licitacoes.length === 0) {
             return NextResponse.json({
                 success: true,
@@ -254,7 +257,7 @@ export async function POST(request: NextRequest) {
                 }
             });
         }
-        
+
         // 3. Verificar API key
         const apiKey = process.env.GOOGLE_API_KEY;
         if (!apiKey) {
@@ -263,7 +266,7 @@ export async function POST(request: NextRequest) {
                 error: 'API Key do Google não configurada no servidor.'
             }, { status: 500 });
         }
-        
+
         // 4. Inicializar modelo Gemini
         const model = new ChatGoogleGenerativeAI({
             apiKey: apiKey,
@@ -271,31 +274,31 @@ export async function POST(request: NextRequest) {
             temperature: 0.4, // Balanço entre criatividade e consistência
             maxOutputTokens: 4096,
         });
-        
+
         // 5. Executar análise do agente
         const systemPrompt = criarSystemPrompt();
         const userPrompt = criarUserPrompt(perfil, licitacoes);
-        
+
         const messages = [
             new SystemMessage(systemPrompt),
             new HumanMessage(userPrompt)
         ];
-        
+
         const response = await model.invoke(messages);
         const content = response.content as string;
-        
+
         // 6. Processar resposta
         let analise: AnaliseAgente;
-        
+
         try {
             // Limpar possíveis marcadores de código
             const jsonClean = content
                 .replace(/```json\s*/g, '')
                 .replace(/```\s*/g, '')
                 .trim();
-            
+
             const parsed = JSON.parse(jsonClean);
-            
+
             // Validar e ajustar estrutura
             analise = {
                 resumoGeral: parsed.resumoGeral || 'Análise concluída.',
@@ -330,22 +333,22 @@ export async function POST(request: NextRequest) {
                 dataAnalise: new Date().toISOString(),
                 versaoAgente: VERSAO_AGENTE
             };
-            
+
         } catch (parseError) {
             console.error('Erro ao processar resposta do agente:', parseError);
             console.error('Resposta raw:', content);
-            
+
             return NextResponse.json({
                 success: false,
                 error: 'Erro ao processar análise do agente. Tente novamente.'
             }, { status: 500 });
         }
-        
+
         return NextResponse.json({
             success: true,
             data: analise
         });
-        
+
     } catch (error) {
         console.error('Erro no agente de recomendação:', error);
         return NextResponse.json({
@@ -363,15 +366,18 @@ function determinarNivel(score: number): 'Excelente' | 'Bom' | 'Moderado' | 'Bai
 }
 
 // GET para verificar status do agente
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
-        const perfilRes = await withReconnect((r: any) => 
-            r.perfil_empresa.findUnique({ where: { user_id: BigInt(USER_ID) as any } })
+        const usuario = await getUsuarioFromRequest(request);
+        if (!usuario) return respostaNaoAutorizado();
+
+        const perfilRes = await withReconnect((r: any) =>
+            r.perfil_empresa.findUnique({ where: { user_id: usuario.userId as any } })
         ) as any | null;
-        
+
         const perfilConfigurado = !!(perfilRes?.dados);
         const apiKeyConfigurada = !!process.env.GOOGLE_API_KEY;
-        
+
         return NextResponse.json({
             success: true,
             status: {

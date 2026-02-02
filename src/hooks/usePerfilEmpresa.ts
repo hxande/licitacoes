@@ -3,18 +3,26 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PerfilEmpresa, MatchResult } from '@/types/empresa';
 import { Licitacao } from '@/types/licitacao';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 const STORAGE_KEY = 'perfil-empresa';
 
 export function usePerfilEmpresa() {
+    const { autenticado } = useAuthContext();
     const [perfil, setPerfil] = useState<PerfilEmpresa | null>(null);
     const [loaded, setLoaded] = useState(false);
 
-    // Carregar perfil do localStorage
+    // Carregar perfil do servidor
     useEffect(() => {
+        if (!autenticado) {
+            setPerfil(null);
+            setLoaded(true);
+            return;
+        }
+
         async function load() {
             try {
-                const res = await fetch('/api/perfil-empresa');
+                const res = await fetch('/api/perfil-empresa', { credentials: 'include' });
                 if (!res.ok) throw new Error('API unavailable');
                 const data = await res.json();
                 if (data) {
@@ -31,7 +39,7 @@ export function usePerfilEmpresa() {
             }
         }
         load();
-    }, []);
+    }, [autenticado]);
 
     function loadFromStorage(): PerfilEmpresa | null { return null; }
     function saveToStorage(_: PerfilEmpresa | null) { /* noop - server persists data */ }
@@ -40,14 +48,14 @@ export function usePerfilEmpresa() {
     const salvarPerfil = useCallback((novoPerfil: PerfilEmpresa) => {
         setPerfil(novoPerfil);
         saveToStorage(novoPerfil);
-        fetch('/api/perfil-empresa', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(novoPerfil) }).catch(() => { saveToStorage(novoPerfil); });
+        fetch('/api/perfil-empresa', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(novoPerfil), credentials: 'include' }).catch(() => { saveToStorage(novoPerfil); });
     }, []);
 
     // Limpar perfil
     const limparPerfil = useCallback(() => {
         setPerfil(null);
         saveToStorage(null);
-        fetch('/api/perfil-empresa', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).catch(() => { saveToStorage(null); });
+        fetch('/api/perfil-empresa', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}), credentials: 'include' }).catch(() => { saveToStorage(null); });
     }, []);
 
     // Calcular match com uma licitação

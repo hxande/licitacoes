@@ -7,6 +7,29 @@ datasource db {
   url      = env("LICITACOES__POSTGRES_URL_NON_POOLING")
 }
 
+model usuario {
+  id                BigInt    @id @default(autoincrement())
+  email             String    @unique
+  senha_hash        String
+  nome              String
+  telefone          String?
+  email_verificado  Boolean   @default(false)
+  token_verificacao String?
+  token_expira_em   DateTime?
+  token_reset_senha String?
+  reset_expira_em   DateTime?
+  criado_em         DateTime  @default(now())
+  atualizado_em     DateTime  @default(now())
+}
+
+model sessao {
+  id            String   @id
+  user_id       BigInt
+  token         String   @unique
+  expira_em     DateTime
+  criado_em     DateTime @default(now())
+}
+
 model alerta {
   id            BigInt   @id @default(autoincrement())
   user_id       BigInt

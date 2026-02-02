@@ -2,18 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Building2, Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { login, carregando: carregandoAuth, autenticado } = useAuthContext();
+    const { login, reenviarVerificacao, carregando: carregandoAuth, autenticado } = useAuthContext();
 
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
     const [mostrarSenha, setMostrarSenha] = useState(false);
     const [carregando, setCarregando] = useState(false);
     const [erro, setErro] = useState('');
+    const [emailNaoVerificado, setEmailNaoVerificado] = useState(false);
+    const [reenvioSucesso, setReenvioSucesso] = useState(false);
 
     // Se já estiver autenticado, redireciona
     useEffect(() => {
@@ -25,6 +28,8 @@ export default function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setErro('');
+        setEmailNaoVerificado(false);
+        setReenvioSucesso(false);
 
         if (!email || !senha) {
             setErro('Preencha todos os campos');
@@ -38,10 +43,30 @@ export default function LoginPage() {
             if (resultado.sucesso) {
                 router.push('/');
             } else {
+                if (resultado.erro?.includes('verifique seu email')) {
+                    setEmailNaoVerificado(true);
+                }
                 setErro(resultado.erro || 'Erro ao fazer login');
             }
         } catch {
             setErro('Erro ao fazer login. Tente novamente.');
+        } finally {
+            setCarregando(false);
+        }
+    };
+
+    const handleReenviarVerificacao = async () => {
+        setCarregando(true);
+        try {
+            const resultado = await reenviarVerificacao(email);
+            if (resultado.sucesso) {
+                setReenvioSucesso(true);
+                setEmailNaoVerificado(false);
+            } else {
+                setErro(resultado.erro || 'Erro ao reenviar email');
+            }
+        } catch {
+            setErro('Erro ao reenviar email. Tente novamente.');
         } finally {
             setCarregando(false);
         }
@@ -66,6 +91,15 @@ export default function LoginPage() {
                     <h1 className="text-2xl font-bold text-gray-900">Licitações Brasil</h1>
                     <p className="text-gray-500 mt-1">Acesse sua conta</p>
                 </div>
+
+                {/* Mensagem de reenvio sucesso */}
+                {reenvioSucesso && (
+                    <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-green-700 text-sm text-center">
+                            Email de verificação reenviado! Verifique sua caixa de entrada.
+                        </p>
+                    </div>
+                )}
 
                 {/* Formulário */}
                 <form onSubmit={handleSubmit} className="space-y-5">
@@ -118,6 +152,15 @@ export default function LoginPage() {
                     {erro && (
                         <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg">
                             {erro}
+                            {emailNaoVerificado && (
+                                <button
+                                    type="button"
+                                    onClick={handleReenviarVerificacao}
+                                    className="block mt-2 text-blue-600 hover:underline"
+                                >
+                                    Reenviar email de verificação
+                                </button>
+                            )}
                         </div>
                     )}
 
@@ -138,16 +181,19 @@ export default function LoginPage() {
                     </button>
                 </form>
 
-                {/* Aviso temporário */}
-                <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
-                    <p className="text-amber-800 text-sm text-center">
-                        <strong>Modo de desenvolvimento:</strong> Qualquer email e senha serão aceitos.
+                {/* Link para cadastro */}
+                <div className="mt-6 text-center">
+                    <p className="text-sm text-gray-600">
+                        Não tem uma conta?{' '}
+                        <Link href="/cadastro" className="text-blue-600 hover:text-blue-700 font-medium">
+                            Cadastre-se
+                        </Link>
                     </p>
                 </div>
 
                 {/* Esqueci a senha */}
-                <div className="mt-6 text-center">
-                    <button className="text-sm text-blue-600 hover:text-blue-700 transition">
+                <div className="mt-4 text-center">
+                    <button className="text-sm text-gray-500 hover:text-gray-700 transition">
                         Esqueceu sua senha?
                     </button>
                 </div>

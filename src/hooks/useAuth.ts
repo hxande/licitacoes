@@ -1,18 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Usuario, Sessao, ConfiguracoesUsuario } from '@/types/usuario';
+import { Usuario, Sessao, ConfiguracoesUsuario, ResultadoAuth } from '@/types/usuario';
 
-const STORAGE_KEY = 'sessao-usuario';
-const PERFIL_KEY = 'perfil-usuario';
 const CONFIG_KEY = 'config-usuario';
-const FIXED_USER_ID = '999';
-
-// Gera um ID único simples
-const gerarId = () => Math.random().toString(36).substring(2, 15);
-
-// Gera um token fake
-const gerarToken = () => Math.random().toString(36).substring(2) + Date.now().toString(36);
 
 export function useAuth() {
     const [sessao, setSessao] = useState<Sessao | null>(null);
@@ -24,42 +15,127 @@ export function useAuth() {
     });
     const [carregando, setCarregando] = useState(true);
 
-    // No persistent client-side session: always start empty and fetch from server as needed
+    // Verificar sessão existente ao carregar
     useEffect(() => {
-        setCarregando(false);
+        const verificarSessao = async () => {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    credentials: 'include',
+                });
+                const data = await response.json();
+
+                if (data.autenticado && data.usuario) {
+                    setSessao({
+                        usuario: data.usuario,
+                        token: '', // Token está no cookie httpOnly
+                        expiraEm: '',
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao verificar sessão:', error);
+            } finally {
+                setCarregando(false);
+            }
+        };
+
+        verificarSessao();
+
+        // Carregar configurações do localStorage
+        if (typeof window !== 'undefined') {
+            const configSalvas = localStorage.getItem(CONFIG_KEY);
+            if (configSalvas) {
+                try {
+                    setConfiguracoes(JSON.parse(configSalvas));
+                } catch { }
+            }
+        }
     }, []);
 
-    // Login - por enquanto aceita qualquer credencial
-    const login = useCallback(async (email: string, _senha: string): Promise<{ sucesso: boolean; erro?: string }> => {
-        // Simula um delay de rede
-        await new Promise(resolve => setTimeout(resolve, 800));
+    // Login
+    const login = useCallback(async (email: string, senha: string): Promise<ResultadoAuth> => {
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ email, senha }),
+            });
 
-        // Por enquanto, sempre autentica e força o usuário para id 999
-        const usuario: Usuario = {
-            id: FIXED_USER_ID,
-            nome: email.split('@')[0],
-            email,
-            criadoEm: new Date().toISOString(),
-        };
+            const data = await response.json();
 
-        const expiraEm = new Date();
-        expiraEm.setDate(expiraEm.getDate() + 7); // 7 dias
+            if (!response.ok) {
+                return { sucesso: false, erro: data.error || 'Erro ao fazer login' };
+            }
 
-        const novaSessao: Sessao = {
-            usuario,
-            token: gerarToken(),
-            expiraEm: expiraEm.toISOString(),
-        };
+            setSessao({
+                usuario: data.usuario,
+                token: data.token,
+                expiraEm: data.expiraEm,
+            });
 
-        // Do not persist session/profile in localStorage; keep in-memory only
-        setSessao(novaSessao);
+            return { sucesso: true };
+        } catch (error) {
+            console.error('Erro ao fazer login:', error);
+            return { sucesso: false, erro: 'Erro de conexão. Tente novamente.' };
+        }
+    }, []);
 
-        return { sucesso: true };
+    // Registro
+    const registrar = useCallback(async (nome: string, email: string, senha: string): Promise<ResultadoAuth> => {
+        try {
+            const response = await fetch('/api/auth/registro', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome, email, senha }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                return { sucesso: false, erro: data.error || 'Erro ao criar conta' };
+            }
+
+            return { sucesso: true, mensagem: data.message };
+        } catch (error) {
+            console.error('Erro ao registrar:', error);
+            return { sucesso: false, erro: 'Erro de conexão. Tente novamente.' };
+        }
     }, []);
 
     // Logout
-    const logout = useCallback(() => {
-        setSessao(null);
+    const logout = useCallback(async () => {
+        try {
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include',
+            });
+        } catch (error) {
+            console.error('Erro ao fazer logout:', error);
+        } finally {
+            setSessao(null);
+        }
+    }, []);
+
+    // Reenviar verificação de email
+    const reenviarVerificacao = useCallback(async (email: string): Promise<ResultadoAuth> => {
+        try {
+            const response = await fetch('/api/auth/reenviar-verificacao', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                return { sucesso: false, erro: data.error };
+            }
+
+            return { sucesso: true, mensagem: data.message };
+        } catch (error) {
+            console.error('Erro ao reenviar verificação:', error);
+            return { sucesso: false, erro: 'Erro de conexão. Tente novamente.' };
+        }
     }, []);
 
     // Atualizar perfil do usuário
@@ -74,6 +150,9 @@ export function useAuth() {
     const atualizarConfiguracoes = useCallback((novasConfigs: Partial<ConfiguracoesUsuario>) => {
         const configsAtualizadas = { ...configuracoes, ...novasConfigs };
         setConfiguracoes(configsAtualizadas);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(CONFIG_KEY, JSON.stringify(configsAtualizadas));
+        }
     }, [configuracoes]);
 
     return {
@@ -84,7 +163,10 @@ export function useAuth() {
         autenticado: !!sessao,
         login,
         logout,
+        registrar,
+        reenviarVerificacao,
         atualizarPerfil,
         atualizarConfiguracoes,
     };
 }
+

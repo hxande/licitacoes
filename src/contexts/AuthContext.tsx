@@ -2,7 +2,7 @@
 
 import { createContext, useContext, ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Usuario, Sessao, ConfiguracoesUsuario } from '@/types/usuario';
+import { Usuario, Sessao, ConfiguracoesUsuario, ResultadoAuth } from '@/types/usuario';
 
 interface AuthContextType {
     usuario: Usuario | null;
@@ -10,8 +10,10 @@ interface AuthContextType {
     configuracoes: ConfiguracoesUsuario;
     carregando: boolean;
     autenticado: boolean;
-    login: (email: string, senha: string) => Promise<{ sucesso: boolean; erro?: string }>;
-    logout: () => void;
+    login: (email: string, senha: string) => Promise<ResultadoAuth>;
+    logout: () => Promise<void>;
+    registrar: (nome: string, email: string, senha: string) => Promise<ResultadoAuth>;
+    reenviarVerificacao: (email: string) => Promise<ResultadoAuth>;
     atualizarPerfil: (dados: Partial<Usuario>) => void;
     atualizarConfiguracoes: (configs: Partial<ConfiguracoesUsuario>) => void;
 }

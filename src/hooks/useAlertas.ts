@@ -1,15 +1,22 @@
 import { useEffect, useState } from 'react';
 import { AlertaLocal } from '@/types/alerta';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 const STORAGE_KEY = 'licitacoes_alertas';
 
 export function useAlertas() {
+    const { autenticado } = useAuthContext();
     const [alertas, setAlertas] = useState<AlertaLocal[]>([]);
 
     useEffect(() => {
+        if (!autenticado) {
+            setAlertas([]);
+            return;
+        }
+
         async function load() {
             try {
-                const res = await fetch('/api/alertas');
+                const res = await fetch('/api/alertas', { credentials: 'include' });
                 if (!res.ok) throw new Error('API unavailable');
                 const data = await res.json();
                 if (Array.isArray(data)) {
@@ -22,14 +29,14 @@ export function useAlertas() {
             }
         }
         load();
-    }, []);
+    }, [autenticado]);
 
     function loadFromStorage(): AlertaLocal[] { return []; }
     function saveToStorage(_: AlertaLocal[]) { /* noop - persistence moved to server */ }
 
     async function criarAlerta(partial: Partial<AlertaLocal>) {
         try {
-            const res = await fetch('/api/alertas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(partial) });
+            const res = await fetch('/api/alertas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(partial), credentials: 'include' });
             const data = await res.json();
             const novo: AlertaLocal = {
                 id: data.id,
@@ -64,7 +71,7 @@ export function useAlertas() {
 
     async function atualizarAlerta(id: string, partial: Partial<AlertaLocal>) {
         try {
-            await fetch('/api/alertas', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...partial }) });
+            await fetch('/api/alertas', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...partial }), credentials: 'include' });
             setAlertas(prev => {
                 const next = prev.map(a => a.id === id ? { ...a, ...partial } : a);
                 saveToStorage(next);
@@ -82,7 +89,7 @@ export function useAlertas() {
 
     async function removerAlerta(id: string) {
         try {
-            await fetch(`/api/alertas?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+            await fetch(`/api/alertas?id=${encodeURIComponent(id)}`, { method: 'DELETE', credentials: 'include' });
             setAlertas(prev => {
                 const next = prev.filter(a => a.id !== id);
                 saveToStorage(next);

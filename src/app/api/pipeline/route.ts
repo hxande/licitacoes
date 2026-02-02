@@ -1,15 +1,17 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma, { withReconnect } from '@/lib/prisma';
 import { isDbAvailable } from '@/lib/db';
 import { jsonResponse } from '@/lib/response';
+import { getUsuarioFromRequest, respostaNaoAutorizado } from '@/lib/auth';
 
-const USER_ID = 999;
-
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
+        const usuario = await getUsuarioFromRequest(req);
+        if (!usuario) return respostaNaoAutorizado();
+
         const ok = await isDbAvailable();
         if (!ok) return NextResponse.json([], { status: 503 });
-        const rows = await withReconnect((p: any) => p.pipeline.findMany({ where: { user_id: BigInt(USER_ID) }, orderBy: { criado_em: 'desc' } })) as any[];
+        const rows = await withReconnect((p: any) => p.pipeline.findMany({ where: { user_id: usuario.userId }, orderBy: { criado_em: 'desc' } })) as any[];
         return jsonResponse(rows || []);
     } catch (err) {
         console.error(err);
@@ -17,8 +19,11 @@ export async function GET() {
     }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
+        const usuario = await getUsuarioFromRequest(req);
+        if (!usuario) return respostaNaoAutorizado();
+
         const ok = await isDbAvailable();
         if (!ok) return NextResponse.json({ error: 'DB inacessível' }, { status: 503 });
         const body = await req.json();
@@ -26,7 +31,7 @@ export async function POST(req: Request) {
         await withReconnect((p: any) => p.pipeline.create({
             data: {
                 id,
-                user_id: BigInt(USER_ID) as any,
+                user_id: usuario.userId as any,
                 objeto,
                 orgao,
                 uf,
@@ -45,13 +50,16 @@ export async function POST(req: Request) {
     }
 }
 
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
     try {
+        const usuario = await getUsuarioFromRequest(req);
+        if (!usuario) return respostaNaoAutorizado();
+
         const ok = await isDbAvailable();
         if (!ok) return NextResponse.json({ error: 'DB inacessível' }, { status: 503 });
         const body = await req.json();
         const { id, status, observacoes } = body;
-        await withReconnect((p: any) => p.pipeline.updateMany({ where: { id, user_id: BigInt(USER_ID) as any }, data: { status: status ?? undefined, observacoes: observacoes ?? undefined, atualizado_em: new Date() } }));
+        await withReconnect((p: any) => p.pipeline.updateMany({ where: { id, user_id: usuario.userId as any }, data: { status: status ?? undefined, observacoes: observacoes ?? undefined, atualizado_em: new Date() } }));
         return NextResponse.json({ ok: true });
     } catch (err) {
         console.error(err);
@@ -59,14 +67,17 @@ export async function PUT(req: Request) {
     }
 }
 
-export async function DELETE(req: Request) {
+export async function DELETE(req: NextRequest) {
     try {
+        const usuario = await getUsuarioFromRequest(req);
+        if (!usuario) return respostaNaoAutorizado();
+
         const ok = await isDbAvailable();
         if (!ok) return NextResponse.json({ error: 'DB inacessível' }, { status: 503 });
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id');
         if (!id) return NextResponse.json({ error: 'id missing' }, { status: 400 });
-        await withReconnect((p: any) => p.pipeline.deleteMany({ where: { id, user_id: BigInt(USER_ID) as any } }));
+        await withReconnect((p: any) => p.pipeline.deleteMany({ where: { id, user_id: usuario.userId as any } }));
         return NextResponse.json({ ok: true });
     } catch (err) {
         console.error(err);

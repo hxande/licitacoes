@@ -19,3 +19,20 @@ export interface ConfiguracoesUsuario {
     resumoDiario: boolean;
     resumoSemanal: boolean;
 }
+
+export interface RegistroUsuario {
+    nome: string;
+    email: string;
+    senha: string;
+}
+
+export interface LoginCredenciais {
+    email: string;
+    senha: string;
+}
+
+export interface ResultadoAuth {
+    sucesso: boolean;
+    erro?: string;
+    mensagem?: string;
+}

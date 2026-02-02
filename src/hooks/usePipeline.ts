@@ -3,17 +3,26 @@
 import { useState, useEffect, useCallback } from 'react';
 import { LicitacaoPipeline, StatusPipeline } from '@/types/pipeline';
 import { Licitacao } from '@/types/licitacao';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 const STORAGE_KEY = 'pipeline-licitacoes';
 
 export function usePipeline() {
+    const { autenticado } = useAuthContext();
     const [licitacoes, setLicitacoes] = useState<LicitacaoPipeline[]>([]);
     const [carregado, setCarregado] = useState(false);
+
     // Carregar do servidor
     useEffect(() => {
+        if (!autenticado) {
+            setLicitacoes([]);
+            setCarregado(true);
+            return;
+        }
+
         async function load() {
             try {
-                const res = await fetch('/api/pipeline');
+                const res = await fetch('/api/pipeline', { credentials: 'include' });
                 if (!res.ok) throw new Error('API unavailable');
                 const data = await res.json();
                 if (Array.isArray(data)) {
@@ -28,7 +37,7 @@ export function usePipeline() {
             }
         }
         load();
-    }, []);
+    }, [autenticado]);
 
     function loadFromStorage(): LicitacaoPipeline[] { return []; }
     function saveToStorage(_: LicitacaoPipeline[]) { /* noop - server persists pipeline */ }
@@ -51,7 +60,7 @@ export function usePipeline() {
                 atualizadoEm: new Date().toISOString(),
             };
             const next = [...prev, nova];
-            fetch('/api/pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(nova) }).catch(() => { /* ignore */ });
+            fetch('/api/pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(nova), credentials: 'include' }).catch(() => { /* ignore */ });
             return next;
         });
     }, []);
@@ -60,7 +69,7 @@ export function usePipeline() {
     const moverParaStatus = useCallback((id: string, novoStatus: StatusPipeline) => {
         setLicitacoes(prev => {
             const next = prev.map(l => l.id === id ? { ...l, status: novoStatus, atualizadoEm: new Date().toISOString() } : l);
-            fetch('/api/pipeline', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status: novoStatus }) }).catch(() => { /* ignore */ });
+            fetch('/api/pipeline', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status: novoStatus }), credentials: 'include' }).catch(() => { /* ignore */ });
             return next;
         });
     }, []);
@@ -69,7 +78,7 @@ export function usePipeline() {
     const removerDoPipeline = useCallback((id: string) => {
         setLicitacoes(prev => {
             const next = prev.filter(l => l.id !== id);
-            fetch(`/api/pipeline?id=${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => { /* ignore */ });
+            fetch(`/api/pipeline?id=${encodeURIComponent(id)}`, { method: 'DELETE', credentials: 'include' }).catch(() => { /* ignore */ });
             return next;
         });
     }, []);
@@ -78,7 +87,7 @@ export function usePipeline() {
     const atualizarObservacoes = useCallback((id: string, observacoes: string) => {
         setLicitacoes(prev => {
             const next = prev.map(l => l.id === id ? { ...l, observacoes, atualizadoEm: new Date().toISOString() } : l);
-            fetch('/api/pipeline', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, observacoes }) }).catch(() => { /* ignore */ });
+            fetch('/api/pipeline', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, observacoes }), credentials: 'include' }).catch(() => { /* ignore */ });
             return next;
         });
     }, []);

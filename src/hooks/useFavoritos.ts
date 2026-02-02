@@ -1,17 +1,26 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 const STORAGE_KEY = 'licitacoes_favoritas';
 
 export function useFavoritos() {
+    const { autenticado } = useAuthContext();
     const [favoritos, setFavoritos] = useState<Set<string>>(new Set());
     const [loaded, setLoaded] = useState(false);
+
     // Carregar favoritos do servidor com fallback
     useEffect(() => {
+        if (!autenticado) {
+            setFavoritos(new Set());
+            setLoaded(true);
+            return;
+        }
+
         async function load() {
             try {
-                const res = await fetch('/api/favoritos');
+                const res = await fetch('/api/favoritos', { credentials: 'include' });
                 if (!res.ok) throw new Error('API unavailable');
                 const data = await res.json();
                 if (Array.isArray(data)) {
@@ -27,7 +36,7 @@ export function useFavoritos() {
             }
         }
         load();
-    }, []);
+    }, [autenticado]);
 
     function loadFromStorage(): Set<string> { return new Set(); }
     function saveToStorage(_: Set<string>) { /* noop - server persists data */ }
@@ -44,7 +53,12 @@ export function useFavoritos() {
             // no-op client persistence; server holds authoritative data
             return newSet;
         });
-        fetch('/api/favoritos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ licitacaoId }) }).catch(() => { /* ignore */ });
+        fetch('/api/favoritos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ licitacaoId }),
+            credentials: 'include'
+        }).catch(() => { /* ignore */ });
     }, []);
 
     function getCurrentFavoritos(): Set<string> { return favoritos; }

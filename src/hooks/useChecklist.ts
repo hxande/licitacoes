@@ -8,6 +8,7 @@ import {
     StatusDocumento,
     DOCUMENTOS_COMUNS
 } from '@/types/checklist';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 const STORAGE_KEY = 'licitacoes_checklists';
 
@@ -35,15 +36,21 @@ function atualizarStatusDocumentos(documentos: DocumentoChecklist[]): DocumentoC
 }
 
 export function useChecklist() {
+    const { autenticado } = useAuthContext();
     const [checklists, setChecklists] = useState<Checklist[]>([]);
     const [checklistAtual, setChecklistAtual] = useState<Checklist | null>(null);
     const [loading, setLoading] = useState(false);
 
     // Carregar checklists do servidor
     useEffect(() => {
+        if (!autenticado) {
+            setChecklists([]);
+            return;
+        }
+
         async function load() {
             try {
-                const res = await fetch('/api/checklists');
+                const res = await fetch('/api/checklists', { credentials: 'include' });
                 if (!res.ok) throw new Error('API unavailable');
                 const data = await res.json();
                 if (Array.isArray(data)) {
@@ -57,7 +64,7 @@ export function useChecklist() {
             }
         }
         load();
-    }, []);
+    }, [autenticado]);
     function loadFromStorage(): Checklist[] { return []; }
     function saveToStorage(_: Checklist[]) { /* noop - server persists checklists */ }
 
@@ -93,7 +100,7 @@ export function useChecklist() {
 
         setChecklists(prev => { const next = [...prev, novoChecklist]; return next; });
         // persist to server; if fails, keep local copy
-        fetch('/api/checklists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(novoChecklist) }).catch(() => { /* ignore local fallback */ });
+        fetch('/api/checklists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(novoChecklist), credentials: 'include' }).catch(() => { /* ignore local fallback */ });
         return novoChecklist;
     }, []);
 
@@ -157,7 +164,7 @@ export function useChecklist() {
                 })
             };
             const payload = { id: novo.id, titulo: novo.titulo, documentos: novo.documentos };
-            fetch('/api/checklists', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => { /* ignore */ });
+            fetch('/api/checklists', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), credentials: 'include' }).catch(() => { /* ignore */ });
             return novo;
         }));
     }, []);
@@ -181,7 +188,7 @@ export function useChecklist() {
                 })
             };
             const payload = { id: novo.id, titulo: novo.titulo, documentos: novo.documentos };
-            fetch('/api/checklists', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+            fetch('/api/checklists', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), credentials: 'include' })
                 .catch(() => { /* ignore */ });
             return novo;
         }));
@@ -206,7 +213,7 @@ export function useChecklist() {
                 }]
             };
             const payload = { id: novo.id, titulo: novo.titulo, documentos: novo.documentos };
-            fetch('/api/checklists', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+            fetch('/api/checklists', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), credentials: 'include' })
                 .catch(() => { /* ignore */ });
             return novo;
         }));
@@ -221,14 +228,14 @@ export function useChecklist() {
                 atualizadoEm: new Date().toISOString(),
                 documentos: checklist.documentos.filter(d => d.id !== documentoId)
             };
-            fetch('/api/checklists', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: novo.id, titulo: novo.titulo, documentos: novo.documentos }) }).catch(() => { });
+            fetch('/api/checklists', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: novo.id, titulo: novo.titulo, documentos: novo.documentos }), credentials: 'include' }).catch(() => { });
             return novo;
         }));
     }, []);
 
     const excluirChecklist = useCallback((checklistId: string) => {
         setChecklists(prev => prev.filter(c => c.id !== checklistId));
-        fetch(`/api/checklists?id=${encodeURIComponent(checklistId)}`, { method: 'DELETE' }).catch(() => { /* ignore */ });
+        fetch(`/api/checklists?id=${encodeURIComponent(checklistId)}`, { method: 'DELETE', credentials: 'include' }).catch(() => { /* ignore */ });
         if (checklistAtual?.id === checklistId) {
             setChecklistAtual(null);
         }

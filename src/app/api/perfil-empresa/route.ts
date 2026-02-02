@@ -1,12 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma, { withReconnect } from '@/lib/prisma';
 import { jsonResponse } from '@/lib/response';
+import { getUsuarioFromRequest, respostaNaoAutorizado } from '@/lib/auth';
 
-const USER_ID = 999;
-
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        const res = await withReconnect((r: any) => r.perfil_empresa.findUnique({ where: { user_id: BigInt(USER_ID) as any } })) as any | null;
+        const usuario = await getUsuarioFromRequest(req);
+        if (!usuario) return respostaNaoAutorizado();
+
+        const res = await withReconnect((r: any) => r.perfil_empresa.findUnique({ where: { user_id: usuario.userId as any } })) as any | null;
         if (!res) return jsonResponse(null);
         return jsonResponse({ dados: (res as any).dados, atualizado_em: (res as any).atualizado_em });
     } catch (err) {
@@ -15,12 +17,15 @@ export async function GET() {
     }
 }
 
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
     try {
+        const usuario = await getUsuarioFromRequest(req);
+        if (!usuario) return respostaNaoAutorizado();
+
         const dados = await req.json();
         await withReconnect((r: any) => r.perfil_empresa.upsert({
-            where: { user_id: BigInt(USER_ID) as any },
-            create: { user_id: BigInt(USER_ID) as any, dados },
+            where: { user_id: usuario.userId as any },
+            create: { user_id: usuario.userId as any, dados },
             update: { dados, atualizado_em: new Date() },
         }));
         return NextResponse.json({ ok: true });

@@ -1,11 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma, { withReconnect } from '@/lib/prisma';
+import { getUsuarioFromRequest, respostaNaoAutorizado } from '@/lib/auth';
 
-const USER_ID = 999;
-
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        const res = await withReconnect((r: any) => r.favorito.findMany({ where: { user_id: BigInt(USER_ID) } })) as any[];
+        const usuario = await getUsuarioFromRequest(req);
+        if (!usuario) return respostaNaoAutorizado();
+
+        const res = await withReconnect((r: any) => r.favorito.findMany({ where: { user_id: usuario.userId } })) as any[];
         return NextResponse.json((res || []).map((r: any) => r.licitacao_id));
     } catch (err) {
         console.error(err);
@@ -13,17 +15,28 @@ export async function GET() {
     }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
+        const usuario = await getUsuarioFromRequest(req);
+        if (!usuario) return respostaNaoAutorizado();
+
         const { licitacaoId } = await req.json();
         const licId = String(licitacaoId || '');
         if (!licId) return NextResponse.json({ error: 'licitacaoId missing' }, { status: 400 });
-        const exists = await withReconnect((r: any) => r.favorito.findUnique({ where: { user_id_licitacao_id: { user_id: BigInt(USER_ID) as any, licitacao_id: licId } } }).catch(() => null)) as any;
+
+        const exists = await withReconnect((r: any) => r.favorito.findUnique({
+            where: { user_id_licitacao_id: { user_id: usuario.userId as any, licitacao_id: licId } }
+        }).catch(() => null)) as any;
+
         if (exists) {
-            await withReconnect((r: any) => r.favorito.delete({ where: { user_id_licitacao_id: { user_id: BigInt(USER_ID) as any, licitacao_id: licId } } }));
+            await withReconnect((r: any) => r.favorito.delete({
+                where: { user_id_licitacao_id: { user_id: usuario.userId as any, licitacao_id: licId } }
+            }));
             return NextResponse.json({ removed: true });
         } else {
-            await withReconnect((r: any) => r.favorito.create({ data: { user_id: BigInt(USER_ID) as any, licitacao_id: licId } }));
+            await withReconnect((r: any) => r.favorito.create({
+                data: { user_id: usuario.userId as any, licitacao_id: licId }
+            }));
             return NextResponse.json({ added: true });
         }
     } catch (err) {

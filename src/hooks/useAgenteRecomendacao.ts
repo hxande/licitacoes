@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
-import { 
-    AnaliseAgente, 
-    ConfiguracaoAgente, 
-    ResponseAgente 
+import {
+    AnaliseAgente,
+    ConfiguracaoAgente,
+    ResponseAgente
 } from '@/types/agente-recomendacao';
 
 interface UseAgenteRecomendacaoReturn {
@@ -28,9 +28,9 @@ export function useAgenteRecomendacao(): UseAgenteRecomendacaoReturn {
 
     const verificarStatus = useCallback(async () => {
         try {
-            const response = await fetch('/api/agente-recomendacao');
+            const response = await fetch('/api/agente-recomendacao', { credentials: 'include' });
             const data = await response.json();
-            
+
             if (data.success) {
                 setStatusAgente(data.status);
             } else {
@@ -44,7 +44,7 @@ export function useAgenteRecomendacao(): UseAgenteRecomendacaoReturn {
     const executarAnalise = useCallback(async (config?: ConfiguracaoAgente) => {
         setLoading(true);
         setError(null);
-        
+
         try {
             const response = await fetch('/api/agente-recomendacao', {
                 method: 'POST',
@@ -52,10 +52,11 @@ export function useAgenteRecomendacao(): UseAgenteRecomendacaoReturn {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ configuracao: config }),
+                credentials: 'include',
             });
-            
+
             const data: ResponseAgente = await response.json();
-            
+
             if (data.success && data.data) {
                 setAnalise(data.data);
             } else {
