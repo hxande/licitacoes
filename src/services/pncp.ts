@@ -56,77 +56,457 @@ function extractCategoriasTI(objeto: string): string[] {
     return categorias;
 }
 
-// Extrai a área de atuação principal da licitação
+// ============================================================================
+// SISTEMA DE CATEGORIZAÇÃO POR SCORING
+// ============================================================================
+
+interface TermoCategoria {
+    termo: string;
+    peso: number;  // 1 = genérico, 2 = moderado, 3 = muito específico
+}
+
+interface CategoriaConfig {
+    termos: TermoCategoria[];
+    exclusoes: string[];      // Se encontrar esses termos, descartar a categoria
+    scoreMinimo: number;      // Score mínimo para classificar nesta categoria
+}
+
+// Configuração completa das categorias com pesos e exclusões
+const CATEGORIAS_CONFIG: Record<string, CategoriaConfig> = {
+    'Tecnologia da Informação': {
+        termos: [
+            // Peso 3 - Muito específicos (praticamente garantem TI)
+            { termo: 'software', peso: 3 },
+            { termo: 'sistema de informação', peso: 3 },
+            { termo: 'desenvolvimento de sistema', peso: 3 },
+            { termo: 'fábrica de software', peso: 3 },
+            { termo: 'data center', peso: 3 },
+            { termo: 'infraestrutura de ti', peso: 3 },
+            { termo: 'suporte de ti', peso: 3 },
+            { termo: 'helpdesk', peso: 3 },
+            { termo: 'help desk', peso: 3 },
+            { termo: 'licença de software', peso: 3 },
+            { termo: 'segurança da informação', peso: 3 },
+            { termo: 'banco de dados', peso: 3 },
+            { termo: 'cloud computing', peso: 3 },
+            { termo: 'computação em nuvem', peso: 3 },
+            { termo: 'virtualização', peso: 3 },
+            { termo: 'backup de dados', peso: 3 },
+            { termo: 'rede de computadores', peso: 3 },
+            { termo: 'cabeamento estruturado', peso: 3 },
+            // Peso 2 - Moderados (fortes indicadores)
+            { termo: 'informática', peso: 2 },
+            { termo: 'computador', peso: 2 },
+            { termo: 'notebook', peso: 2 },
+            { termo: 'servidor de rede', peso: 2 },
+            { termo: 'firewall', peso: 2 },
+            { termo: 'antivírus', peso: 2 },
+            { termo: 'antivirus', peso: 2 },
+            { termo: 'programação', peso: 2 },
+            { termo: 'aplicativo', peso: 2 },
+            { termo: 'website', peso: 2 },
+            { termo: 'portal web', peso: 2 },
+            { termo: 'hosting', peso: 2 },
+            { termo: 'hospedagem de site', peso: 2 },
+            { termo: 'switch de rede', peso: 2 },
+            { termo: 'roteador', peso: 2 },
+            { termo: 'storage', peso: 2 },
+            { termo: 'erp', peso: 2 },
+            { termo: 'crm', peso: 2 },
+            { termo: 'saas', peso: 2 },
+            // Peso 1 - Genéricos (precisam de outros termos)
+            { termo: 'rede de dados', peso: 1 },
+            { termo: 'cloud', peso: 1 },
+            { termo: 'nuvem', peso: 1 },
+            { termo: 'backup', peso: 1 },
+            { termo: 'servidor', peso: 1 },
+            { termo: 'ti ', peso: 1 },
+        ],
+        exclusoes: ['ar condicionado', 'climatização', 'refrigeração'],
+        scoreMinimo: 3
+    },
+
+    'Engenharia e Obras': {
+        termos: [
+            // Peso 3 - Muito específicos
+            { termo: 'obra de engenharia', peso: 3 },
+            { termo: 'construção civil', peso: 3 },
+            { termo: 'pavimentação asfáltica', peso: 3 },
+            { termo: 'pavimentação de via', peso: 3 },
+            { termo: 'terraplanagem', peso: 3 },
+            { termo: 'edificação', peso: 3 },
+            { termo: 'construção de prédio', peso: 3 },
+            { termo: 'reforma predial', peso: 3 },
+            { termo: 'recuperação de prédio', peso: 3 },
+            { termo: 'manutenção predial', peso: 3 },
+            { termo: 'estrutura metálica', peso: 3 },
+            { termo: 'estrutura de concreto', peso: 3 },
+            { termo: 'fundação de obra', peso: 3 },
+            { termo: 'saneamento básico', peso: 3 },
+            { termo: 'rede de esgoto', peso: 3 },
+            { termo: 'rede de água', peso: 3 },
+            { termo: 'drenagem pluvial', peso: 3 },
+            { termo: 'impermeabilização', peso: 3 },
+            // Peso 2 - Moderados
+            { termo: 'construção', peso: 2 },
+            { termo: 'obra', peso: 2 },
+            { termo: 'reforma', peso: 2 },
+            { termo: 'pavimentação', peso: 2 },
+            { termo: 'engenharia civil', peso: 2 },
+            { termo: 'alvenaria', peso: 2 },
+            { termo: 'concreto armado', peso: 2 },
+            { termo: 'instalação hidráulica', peso: 2 },
+            { termo: 'instalação elétrica predial', peso: 2 },
+            { termo: 'pintura de parede', peso: 2 },
+            { termo: 'pintura predial', peso: 2 },
+            { termo: 'ponte', peso: 2 },
+            { termo: 'viaduto', peso: 2 },
+            // Peso 1 - Genéricos (evitar sozinhos)
+            { termo: 'engenharia', peso: 1 },
+            { termo: 'arquitetura', peso: 1 },
+            { termo: 'projeto', peso: 1 },
+            { termo: 'fundação', peso: 1 },
+            { termo: 'hidráulica', peso: 1 },
+            { termo: 'elétrica', peso: 1 },
+            { termo: 'drenagem', peso: 1 },
+            { termo: 'estrada', peso: 1 },
+            { termo: 'pintura', peso: 1 },
+        ],
+        exclusoes: ['evento', 'carnaval', 'festa', 'show', 'palco', 'trio elétrico', 'som', 'iluminação de palco', 'cenário', 'decoração de festa', 'bombeiro', 'brigadista'],
+        scoreMinimo: 3
+    },
+
+    'Saúde': {
+        termos: [
+            // Peso 3 - Muito específicos
+            { termo: 'medicamento', peso: 3 },
+            { termo: 'produto farmacêutico', peso: 3 },
+            { termo: 'material hospitalar', peso: 3 },
+            { termo: 'equipamento hospitalar', peso: 3 },
+            { termo: 'material cirúrgico', peso: 3 },
+            { termo: 'equipamento médico', peso: 3 },
+            { termo: 'equipamento laboratorial', peso: 3 },
+            { termo: 'unidade básica de saúde', peso: 3 },
+            { termo: 'ubs', peso: 3 },
+            { termo: 'pronto socorro', peso: 3 },
+            { termo: 'uti', peso: 3 },
+            { termo: 'centro cirúrgico', peso: 3 },
+            { termo: 'ambulância', peso: 3 },
+            { termo: 'serviço de saúde', peso: 3 },
+            // Peso 2 - Moderados
+            { termo: 'hospital', peso: 2 },
+            { termo: 'hospitalar', peso: 2 },
+            { termo: 'farmacêutico', peso: 2 },
+            { termo: 'médico', peso: 2 },
+            { termo: 'enfermagem', peso: 2 },
+            { termo: 'cirúrgico', peso: 2 },
+            { termo: 'laboratorial', peso: 2 },
+            { termo: 'diagnóstico', peso: 2 },
+            { termo: 'vacina', peso: 2 },
+            { termo: 'clínica', peso: 2 },
+            { termo: 'odontológico', peso: 2 },
+            { termo: 'fisioterapia', peso: 2 },
+            // Peso 1 - Genéricos
+            { termo: 'saúde', peso: 1 },
+            { termo: 'exame', peso: 1 },
+            { termo: 'tratamento', peso: 1 },
+        ],
+        exclusoes: ['saúde financeira', 'saúde do servidor', 'saúde ocupacional'],
+        scoreMinimo: 3
+    },
+
+    'Educação': {
+        termos: [
+            // Peso 3 - Muito específicos
+            { termo: 'material didático', peso: 3 },
+            { termo: 'material pedagógico', peso: 3 },
+            { termo: 'material escolar', peso: 3 },
+            { termo: 'merenda escolar', peso: 3 },
+            { termo: 'transporte escolar', peso: 3 },
+            { termo: 'uniforme escolar', peso: 3 },
+            { termo: 'mobiliário escolar', peso: 3 },
+            { termo: 'construção de escola', peso: 3 },
+            { termo: 'reforma de escola', peso: 3 },
+            // Peso 2 - Moderados
+            { termo: 'escola', peso: 2 },
+            { termo: 'educação', peso: 2 },
+            { termo: 'ensino', peso: 2 },
+            { termo: 'pedagógico', peso: 2 },
+            { termo: 'escolar', peso: 2 },
+            { termo: 'creche', peso: 2 },
+            { termo: 'universidade', peso: 2 },
+            { termo: 'faculdade', peso: 2 },
+            { termo: 'biblioteca', peso: 2 },
+            { termo: 'livro didático', peso: 2 },
+            // Peso 1 - Genéricos
+            { termo: 'professor', peso: 1 },
+            { termo: 'capacitação', peso: 1 },
+            { termo: 'treinamento', peso: 1 },
+            { termo: 'curso', peso: 1 },
+            { termo: 'livro', peso: 1 },
+        ],
+        exclusoes: ['educação financeira'],
+        scoreMinimo: 3
+    },
+
+    'Alimentação': {
+        termos: [
+            // Peso 3 - Muito específicos
+            { termo: 'gênero alimentício', peso: 3 },
+            { termo: 'refeição preparada', peso: 3 },
+            { termo: 'fornecimento de refeição', peso: 3 },
+            { termo: 'merenda escolar', peso: 3 },
+            { termo: 'kit alimentação', peso: 3 },
+            { termo: 'cesta básica', peso: 3 },
+            // Peso 2 - Moderados
+            { termo: 'alimentação', peso: 2 },
+            { termo: 'refeição', peso: 2 },
+            { termo: 'alimento', peso: 2 },
+            { termo: 'cozinha industrial', peso: 2 },
+            { termo: 'restaurante', peso: 2 },
+            { termo: 'hortifruti', peso: 2 },
+            { termo: 'hortifrutigranjeiro', peso: 2 },
+            // Peso 1 - Genéricos
+            { termo: 'carne', peso: 1 },
+            { termo: 'leite', peso: 1 },
+            { termo: 'pão', peso: 1 },
+            { termo: 'frutas', peso: 1 },
+            { termo: 'verduras', peso: 1 },
+            { termo: 'legumes', peso: 1 },
+            { termo: 'lanche', peso: 1 },
+            { termo: 'café', peso: 1 },
+            { termo: 'água mineral', peso: 1 },
+            { termo: 'bebida', peso: 1 },
+        ],
+        exclusoes: [],
+        scoreMinimo: 3
+    },
+
+    'Veículos e Transporte': {
+        termos: [
+            // Peso 3 - Muito específicos
+            { termo: 'aquisição de veículo', peso: 3 },
+            { termo: 'locação de veículo', peso: 3 },
+            { termo: 'manutenção de veículo', peso: 3 },
+            { termo: 'manutenção veicular', peso: 3 },
+            { termo: 'peça automotiva', peso: 3 },
+            { termo: 'serviço de frete', peso: 3 },
+            { termo: 'transporte de passageiro', peso: 3 },
+            { termo: 'transporte escolar', peso: 3 },
+            { termo: 'gestão de frota', peso: 3 },
+            // Peso 2 - Moderados
+            { termo: 'veículo', peso: 2 },
+            { termo: 'automóvel', peso: 2 },
+            { termo: 'carro', peso: 2 },
+            { termo: 'caminhão', peso: 2 },
+            { termo: 'ônibus', peso: 2 },
+            { termo: 'motocicleta', peso: 2 },
+            { termo: 'combustível', peso: 2 },
+            { termo: 'gasolina', peso: 2 },
+            { termo: 'diesel', peso: 2 },
+            { termo: 'etanol', peso: 2 },
+            { termo: 'frota', peso: 2 },
+            // Peso 1 - Genéricos
+            { termo: 'transporte', peso: 1 },
+            { termo: 'frete', peso: 1 },
+            { termo: 'pneu', peso: 1 },
+        ],
+        exclusoes: ['transporte de dados', 'transporte de informação'],
+        scoreMinimo: 3
+    },
+
+    'Limpeza e Conservação': {
+        termos: [
+            // Peso 3 - Muito específicos
+            { termo: 'serviço de limpeza', peso: 3 },
+            { termo: 'limpeza predial', peso: 3 },
+            { termo: 'limpeza hospitalar', peso: 3 },
+            { termo: 'material de limpeza', peso: 3 },
+            { termo: 'produto de limpeza', peso: 3 },
+            { termo: 'coleta de lixo', peso: 3 },
+            { termo: 'coleta de resíduo', peso: 3 },
+            { termo: 'manutenção de área verde', peso: 3 },
+            { termo: 'controle de pragas', peso: 3 },
+            // Peso 2 - Moderados
+            { termo: 'limpeza', peso: 2 },
+            { termo: 'conservação', peso: 2 },
+            { termo: 'higienização', peso: 2 },
+            { termo: 'zeladoria', peso: 2 },
+            { termo: 'jardinagem', peso: 2 },
+            { termo: 'paisagismo', peso: 2 },
+            { termo: 'dedetização', peso: 2 },
+            { termo: 'desratização', peso: 2 },
+            // Peso 1 - Genéricos
+            { termo: 'resíduo', peso: 1 },
+        ],
+        exclusoes: ['limpeza de dados', 'conservação de documento'],
+        scoreMinimo: 3
+    },
+
+    'Segurança': {
+        termos: [
+            // Peso 3 - Muito específicos
+            { termo: 'vigilância patrimonial', peso: 3 },
+            { termo: 'segurança patrimonial', peso: 3 },
+            { termo: 'vigilância armada', peso: 3 },
+            { termo: 'vigilância desarmada', peso: 3 },
+            { termo: 'monitoramento eletrônico', peso: 3 },
+            { termo: 'controle de acesso', peso: 3 },
+            { termo: 'sistema de alarme', peso: 3 },
+            { termo: 'cerca elétrica', peso: 3 },
+            // Peso 2 - Moderados
+            { termo: 'vigilância', peso: 2 },
+            { termo: 'cftv', peso: 2 },
+            { termo: 'câmera de segurança', peso: 2 },
+            { termo: 'portaria', peso: 2 },
+            { termo: 'guarda', peso: 2 },
+            // Peso 1 - Genéricos
+            { termo: 'monitoramento', peso: 1 },
+            { termo: 'alarme', peso: 1 },
+            { termo: 'câmera', peso: 1 },
+        ],
+        exclusoes: ['segurança da informação', 'segurança de ti', 'segurança do trabalho', 'segurança alimentar'],
+        scoreMinimo: 3
+    },
+
+    'Mobiliário e Equipamentos': {
+        termos: [
+            // Peso 3 - Muito específicos
+            { termo: 'mobiliário de escritório', peso: 3 },
+            { termo: 'mobiliário escolar', peso: 3 },
+            { termo: 'móvel de escritório', peso: 3 },
+            { termo: 'ar condicionado', peso: 3 },
+            { termo: 'sistema de climatização', peso: 3 },
+            // Peso 2 - Moderados
+            { termo: 'mobiliário', peso: 2 },
+            { termo: 'móvel', peso: 2 },
+            { termo: 'cadeira', peso: 2 },
+            { termo: 'mesa de escritório', peso: 2 },
+            { termo: 'armário', peso: 2 },
+            { termo: 'estante', peso: 2 },
+            { termo: 'climatização', peso: 2 },
+            { termo: 'eletrodoméstico', peso: 2 },
+            // Peso 1 - Genéricos
+            { termo: 'equipamento', peso: 1 },
+            { termo: 'máquina', peso: 1 },
+            { termo: 'ferramenta', peso: 1 },
+            { termo: 'mesa', peso: 1 },
+        ],
+        exclusoes: ['equipamento hospitalar', 'equipamento médico', 'equipamento de ti', 'equipamento de informática'],
+        scoreMinimo: 3
+    },
+
+    'Comunicação e Marketing': {
+        termos: [
+            // Peso 3 - Muito específicos
+            { termo: 'serviço de publicidade', peso: 3 },
+            { termo: 'campanha publicitária', peso: 3 },
+            { termo: 'assessoria de imprensa', peso: 3 },
+            { termo: 'produção de vídeo', peso: 3 },
+            { termo: 'material gráfico', peso: 3 },
+            { termo: 'serviço gráfico', peso: 3 },
+            { termo: 'organização de evento', peso: 3 },
+            // Peso 2 - Moderados
+            { termo: 'publicidade', peso: 2 },
+            { termo: 'propaganda', peso: 2 },
+            { termo: 'marketing', peso: 2 },
+            { termo: 'comunicação social', peso: 2 },
+            { termo: 'mídia', peso: 2 },
+            { termo: 'impressão gráfica', peso: 2 },
+            { termo: 'gráfica', peso: 2 },
+            { termo: 'banner', peso: 2 },
+            { termo: 'outdoor', peso: 2 },
+            { termo: 'cerimonial', peso: 2 },
+            // Peso 1 - Genéricos
+            { termo: 'evento', peso: 1 },
+            { termo: 'impressão', peso: 1 },
+            { termo: 'comunicação', peso: 1 },
+        ],
+        exclusoes: ['comunicação de dados', 'rede de comunicação'],
+        scoreMinimo: 3
+    },
+
+    'Jurídico e Contábil': {
+        termos: [
+            // Peso 3 - Muito específicos
+            { termo: 'serviço jurídico', peso: 3 },
+            { termo: 'assessoria jurídica', peso: 3 },
+            { termo: 'consultoria jurídica', peso: 3 },
+            { termo: 'serviço de advocacia', peso: 3 },
+            { termo: 'serviço contábil', peso: 3 },
+            { termo: 'consultoria contábil', peso: 3 },
+            { termo: 'auditoria contábil', peso: 3 },
+            { termo: 'perícia contábil', peso: 3 },
+            // Peso 2 - Moderados
+            { termo: 'jurídico', peso: 2 },
+            { termo: 'advocacia', peso: 2 },
+            { termo: 'advogado', peso: 2 },
+            { termo: 'contábil', peso: 2 },
+            { termo: 'contabilidade', peso: 2 },
+            { termo: 'auditoria', peso: 2 },
+            { termo: 'perícia', peso: 2 },
+            // Peso 1 - Genéricos
+            { termo: 'fiscal', peso: 1 },
+        ],
+        exclusoes: ['auditoria de sistema', 'auditoria de ti'],
+        scoreMinimo: 3
+    },
+
+    'Recursos Humanos': {
+        termos: [
+            // Peso 3 - Muito específicos
+            { termo: 'gestão de recursos humanos', peso: 3 },
+            { termo: 'folha de pagamento', peso: 3 },
+            { termo: 'terceirização de mão de obra', peso: 3 },
+            { termo: 'gestão de pessoal', peso: 3 },
+            { termo: 'recrutamento e seleção', peso: 3 },
+            // Peso 2 - Moderados
+            { termo: 'recursos humanos', peso: 2 },
+            { termo: 'mão de obra', peso: 2 },
+            { termo: 'recrutamento', peso: 2 },
+            { termo: 'seleção de pessoal', peso: 2 },
+            // Peso 1 - Genéricos
+            { termo: 'rh', peso: 1 },
+            { termo: 'seleção', peso: 1 },
+        ],
+        exclusoes: [],
+        scoreMinimo: 3
+    },
+};
+
+// Extrai a área de atuação principal da licitação usando sistema de scoring
 function extractAreaAtuacao(objeto: string): string {
     const objetoLower = objeto.toLowerCase();
 
-    const areaMap: Record<string, string[]> = {
-        'Tecnologia da Informação': [
-            'software', 'sistema de informação', 'informática', 'ti ', 'computador', 'notebook',
-            'servidor', 'rede de dados', 'data center', 'cloud', 'nuvem', 'desenvolvimento de sistema',
-            'programação', 'aplicativo', 'website', 'portal web', 'segurança da informação',
-            'backup', 'firewall', 'helpdesk', 'suporte de ti', 'licença de software'
-        ],
-        'Engenharia e Obras': [
-            'construção', 'obra', 'reforma', 'pavimentação', 'edificação', 'engenharia',
-            'arquitetura', 'projeto', 'terraplanagem', 'fundação', 'estrutura', 'alvenaria',
-            'hidráulica', 'elétrica', 'saneamento', 'drenagem', 'ponte', 'viaduto', 'estrada',
-            'recuperação de prédio', 'manutenção predial', 'pintura', 'impermeabilização'
-        ],
-        'Saúde': [
-            'medicamento', 'farmacêutico', 'hospitalar', 'saúde', 'médico', 'enfermagem',
-            'cirúrgico', 'laboratorial', 'diagnóstico', 'vacina', 'ambulância', 'ubs',
-            'hospital', 'clínica', 'odontológico', 'fisioterapia', 'exame', 'tratamento'
-        ],
-        'Educação': [
-            'escola', 'educação', 'ensino', 'pedagógico', 'didático', 'escolar', 'professor',
-            'creche', 'universidade', 'faculdade', 'capacitação', 'treinamento', 'curso',
-            'material didático', 'livro', 'biblioteca'
-        ],
-        'Alimentação': [
-            'alimentação', 'refeição', 'merenda', 'alimento', 'gênero alimentício', 'cozinha',
-            'restaurante', 'lanche', 'café', 'água mineral', 'bebida', 'hortifruti',
-            'carne', 'leite', 'pão', 'frutas', 'verduras', 'legumes'
-        ],
-        'Veículos e Transporte': [
-            'veículo', 'automóvel', 'carro', 'caminhão', 'ônibus', 'motocicleta', 'transporte',
-            'frete', 'combustível', 'gasolina', 'diesel', 'etanol', 'pneu', 'peça automotiva',
-            'manutenção veicular', 'locação de veículo', 'frota'
-        ],
-        'Limpeza e Conservação': [
-            'limpeza', 'conservação', 'higienização', 'zeladoria', 'jardinagem', 'paisagismo',
-            'manutenção de área verde', 'coleta de lixo', 'resíduo', 'dedetização', 'desratização',
-            'material de limpeza', 'produto de limpeza'
-        ],
-        'Segurança': [
-            'vigilância', 'segurança patrimonial', 'monitoramento', 'alarme', 'câmera',
-            'cftv', 'portaria', 'controle de acesso', 'cerca elétrica', 'guarda'
-        ],
-        'Mobiliário e Equipamentos': [
-            'mobiliário', 'móvel', 'cadeira', 'mesa', 'armário', 'estante', 'ar condicionado',
-            'climatização', 'eletrodoméstico', 'equipamento', 'máquina', 'ferramenta'
-        ],
-        'Comunicação e Marketing': [
-            'publicidade', 'propaganda', 'marketing', 'comunicação', 'mídia', 'impressão',
-            'gráfica', 'banner', 'outdoor', 'evento', 'cerimonial', 'assessoria de imprensa'
-        ],
-        'Jurídico e Contábil': [
-            'jurídico', 'advocacia', 'advogado', 'contábil', 'contabilidade', 'auditoria',
-            'perícia', 'assessoria jurídica', 'consultoria contábil', 'fiscal'
-        ],
-        'Recursos Humanos': [
-            'recursos humanos', 'rh', 'folha de pagamento', 'recrutamento', 'seleção',
-            'terceirização de mão de obra', 'gestão de pessoal'
-        ],
-    };
+    let melhorCategoria = 'Outros';
+    let melhorScore = 0;
 
-    for (const [area, palavras] of Object.entries(areaMap)) {
-        if (palavras.some(palavra => objetoLower.includes(palavra))) {
-            return area;
+    for (const [categoria, config] of Object.entries(CATEGORIAS_CONFIG)) {
+        // Verificar exclusões primeiro - se encontrar, pular esta categoria
+        const temExclusao = config.exclusoes.some(exclusao =>
+            objetoLower.includes(exclusao.toLowerCase())
+        );
+        if (temExclusao) continue;
+
+        // Calcular score somando pesos dos termos encontrados
+        let score = 0;
+        let termosEncontrados = 0;
+
+        for (const { termo, peso } of config.termos) {
+            if (objetoLower.includes(termo.toLowerCase())) {
+                score += peso;
+                termosEncontrados++;
+            }
+        }
+
+        // Verificar se atinge o score mínimo e é melhor que o atual
+        if (score >= config.scoreMinimo && score > melhorScore) {
+            melhorScore = score;
+            melhorCategoria = categoria;
         }
     }
 
-    return 'Outros';
+    return melhorCategoria;
 }
 
 // Limite máximo da API do PNCP
