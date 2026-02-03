@@ -142,8 +142,8 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito,
                         onClick={handleAdicionarPipeline}
                         disabled={jaEstaNoPipeline}
                         className={`p-2 rounded-full transition-all ${jaEstaNoPipeline
-                                ? 'bg-amber-100 text-amber-600'
-                                : 'bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600'
+                            ? 'bg-amber-100 text-amber-600'
+                            : 'bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600'
                             }`}
                         title={jaEstaNoPipeline ? 'Já está em Acompanhamento' : 'Adicionar ao Acompanhamento'}
                     >
@@ -200,18 +200,20 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito,
                     <span className="text-sm">{licitacao.modalidade}</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-gray-600">
-                    <Calendar className="w-4 h-4 flex-shrink-0" />
-                    <span className="text-sm">
-                        Publicação: {formatarData(licitacao.dataPublicacao)}
-                    </span>
-                </div>
-
                 {licitacao.dataAbertura && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                        <Calendar className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-sm">
+                            Abertura: {formatarData(licitacao.dataAbertura)}
+                        </span>
+                    </div>
+                )}
+
+                {licitacao.dataEncerramento && (
                     <div className="flex items-center gap-2 text-gray-600">
                         <Clock className="w-4 h-4 flex-shrink-0" />
                         <span className="text-sm">
-                            Abertura: {formatarData(licitacao.dataAbertura)}
+                            Encerramento: {formatarData(licitacao.dataEncerramento)}
                         </span>
                     </div>
                 )}

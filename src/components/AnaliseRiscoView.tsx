@@ -69,7 +69,7 @@ export function AnaliseRiscoView({ licitacao }: AnaliseRiscoViewProps) {
                         modalidade: licitacao.modalidade,
                         valorEstimado: licitacao.valorEstimado,
                         dataAbertura: licitacao.dataAbertura,
-                        dataPublicacao: licitacao.dataPublicacao,
+                        dataEncerramento: licitacao.dataEncerramento,
                     },
                 }),
             });
@@ -266,10 +266,10 @@ export function AnaliseRiscoView({ licitacao }: AnaliseRiscoViewProps) {
                             <div
                                 key={item.id}
                                 className={`border rounded-lg overflow-hidden ${item.severidade === 'alto'
-                                        ? 'border-red-200 bg-red-50'
-                                        : item.severidade === 'medio'
-                                            ? 'border-yellow-200 bg-yellow-50'
-                                            : 'border-gray-200 bg-white'
+                                    ? 'border-red-200 bg-red-50'
+                                    : item.severidade === 'medio'
+                                        ? 'border-yellow-200 bg-yellow-50'
+                                        : 'border-gray-200 bg-white'
                                     }`}
                             >
                                 <button

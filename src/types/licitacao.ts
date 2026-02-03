@@ -6,8 +6,8 @@ export interface Licitacao {
     municipio?: string;
     objeto: string;
     modalidade: string;
-    dataPublicacao: string;
     dataAbertura?: string;
+    dataEncerramento?: string;
     valorEstimado?: number;
     situacao: string;
     linkEdital?: string;
