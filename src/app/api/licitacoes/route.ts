@@ -54,11 +54,11 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // Ordenar por data de publicação (mais recentes primeiro)
+        // Ordenar por data de abertura (mais próximas primeiro)
         licitacoes.sort((a, b) => {
-            const dataA = new Date(a.dataPublicacao).getTime();
-            const dataB = new Date(b.dataPublicacao).getTime();
-            return dataB - dataA;
+            const dataA = a.dataAbertura ? new Date(a.dataAbertura).getTime() : 0;
+            const dataB = b.dataAbertura ? new Date(b.dataAbertura).getTime() : 0;
+            return dataA - dataB;
         });
 
         // Calcular paginação local
