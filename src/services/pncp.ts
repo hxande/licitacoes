@@ -15,6 +15,7 @@ export function transformPNCPToLicitacao(item: PNCPContratacao): Licitacao {
         municipio: item.unidadeOrgao.municipioNome,
         objeto: objeto,
         modalidade: MODALIDADES[item.modalidadeId] || item.modalidadeNome || 'Não informado',
+        dataPublicacao: item.dataPublicacaoPncp,
         dataAbertura: item.dataAberturaProposta,
         dataEncerramento: item.dataEncerramentoProposta,
         valorEstimado: item.valorTotalEstimado,
