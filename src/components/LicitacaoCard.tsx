@@ -200,23 +200,19 @@ export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito,
                     <span className="text-sm">{licitacao.modalidade}</span>
                 </div>
 
-                {licitacao.dataAbertura && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                        <Calendar className="w-4 h-4 flex-shrink-0" />
-                        <span className="text-sm">
-                            Abertura: {formatarData(licitacao.dataAbertura)}
-                        </span>
-                    </div>
-                )}
+                <div className="flex items-center gap-2 text-gray-600">
+                    <Calendar className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm">
+                        Abertura: {licitacao.dataAbertura ? formatarData(licitacao.dataAbertura) : 'Não informada'}
+                    </span>
+                </div>
 
-                {licitacao.dataEncerramento && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                        <Clock className="w-4 h-4 flex-shrink-0" />
-                        <span className="text-sm">
-                            Encerramento: {formatarData(licitacao.dataEncerramento)}
-                        </span>
-                    </div>
-                )}
+                <div className="flex items-center gap-2 text-gray-600">
+                    <Clock className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm">
+                        Encerramento: {licitacao.dataEncerramento ? formatarData(licitacao.dataEncerramento) : 'Não informada'}
+                    </span>
+                </div>
 
                 <div className="flex items-center gap-2">
                     <DollarSign className="w-4 h-4 flex-shrink-0 text-green-600" />
