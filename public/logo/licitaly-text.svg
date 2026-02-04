@@ -1,0 +1,18 @@
+<svg viewBox="0 0 640 160" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      text {
+        font-family: 'Montserrat', 'Poppins', Arial, sans-serif;
+        font-weight: 800;
+        letter-spacing: -1px;
+      }
+      .blue { fill: #0D4F8B; }
+      .green { fill: #4CAF50; }
+    </style>
+  </defs>
+
+  <!-- Palavra única -->
+  <text x="10" y="115" font-size="120">
+    <tspan class="blue">Lic</tspan><tspan class="green">italy</tspan>
+  </text>
+</svg>
