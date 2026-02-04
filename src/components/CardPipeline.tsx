@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     GripVertical,
     Building2,
@@ -12,8 +12,12 @@ import {
     ExternalLink,
     X,
     Check,
+    CheckCircle2,
+    AlertCircle,
 } from 'lucide-react';
 import { LicitacaoPipeline, StatusPipeline, COLUNAS_PIPELINE } from '@/types/pipeline';
+import { Checklist } from '@/types/checklist';
+import { useChecklist } from '@/hooks/useChecklist';
 
 interface CardPipelineProps {
     licitacao: LicitacaoPipeline;
@@ -33,6 +37,10 @@ export function CardPipeline({
     const [menuAberto, setMenuAberto] = useState(false);
     const [editandoObs, setEditandoObs] = useState(false);
     const [obsTemp, setObsTemp] = useState(licitacao.observacoes || '');
+    const { checklists } = useChecklist();
+
+    // Buscar checklist desta licitação
+    const checklistDaLicitacao = checklists.find(c => c.licitacaoId === licitacao.id);
 
     const formatarMoeda = (valor: number | undefined) => {
         if (!valor) return 'Não informado';
@@ -55,6 +63,25 @@ export function CardPipeline({
     const salvarObservacoes = () => {
         onAtualizarObservacoes(licitacao.id, obsTemp);
         setEditandoObs(false);
+    };
+
+    // Calcular resumo do checklist
+    const calcularResumoChecklist = (checklist: Checklist) => {
+        const docs = checklist.documentos;
+        const total = docs.length;
+        const prontos = docs.filter(d => d.status === 'pronto').length;
+        const pendentes = docs.filter(d => d.status === 'pendente').length;
+        const vencidos = docs.filter(d => d.status === 'vencido').length;
+        const vencendo = docs.filter(d => d.status === 'vencendo').length;
+
+        return {
+            total,
+            prontos,
+            pendentes,
+            vencidos,
+            vencendo,
+            percentualConcluido: total > 0 ? Math.round((prontos / total) * 100) : 0,
+        };
     };
 
     return (
@@ -164,6 +191,42 @@ export function CardPipeline({
                     </div>
                 )}
             </div>
+
+            {/* Checklist */}
+            {checklistDaLicitacao && (
+                <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-blue-900">Checklist</span>
+                        <span className="text-xs font-bold text-blue-600">
+                            {calcularResumoChecklist(checklistDaLicitacao).percentualConcluido}%
+                        </span>
+                    </div>
+                    <div className="w-full bg-blue-200 rounded-full h-1.5">
+                        <div
+                            className="bg-blue-600 h-1.5 rounded-full transition-all"
+                            style={{
+                                width: `${calcularResumoChecklist(checklistDaLicitacao).percentualConcluido}%`
+                            }}
+                        />
+                    </div>
+                    <div className="mt-2 flex gap-2 text-xs text-blue-700">
+                        <div className="flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-green-600" />
+                            <span>{calcularResumoChecklist(checklistDaLicitacao).prontos}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3 text-orange-600" />
+                            <span>{calcularResumoChecklist(checklistDaLicitacao).pendentes}</span>
+                        </div>
+                        {calcularResumoChecklist(checklistDaLicitacao).vencidos > 0 && (
+                            <div className="flex items-center gap-1">
+                                <X className="w-3 h-3 text-red-600" />
+                                <span>{calcularResumoChecklist(checklistDaLicitacao).vencidos}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Observações */}
             {licitacao.observacoes && !editandoObs && (
