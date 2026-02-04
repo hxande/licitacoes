@@ -10,11 +10,7 @@ import {
     DadosSazonalidade,
 } from '@/types/dashboard';
 import { PNCPContratacao, MODALIDADES } from '@/types/licitacao';
-
-const PNCP_BASE_URL = 'https://pncp.gov.br/api/consulta/v1';
-
-// Todas as modalidades disponíveis (1..13)
-const TODAS_MODALIDADES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+import { buscarLicitacoesPNCP } from '@/services/pncp';
 
 // Categoriza a área de atuação com base no objeto da licitação (igual ao pncp.ts)
 function categorizarArea(objeto: string): string {
@@ -89,59 +85,13 @@ function categorizarArea(objeto: string): string {
     return 'Outros';
 }
 
-// Limite máximo da API PNCP
-const PNCP_MAX_PAGE_SIZE = 50;
-
+// Função auxiliar para buscar licitações usando o serviço centralizado
 async function buscarTodasLicitacoes(dataInicio: string, dataFim: string): Promise<PNCPContratacao[]> {
-    const todasLicitacoes: PNCPContratacao[] = [];
-
-    // Buscar por modalidade em paralelo (todas as modalidades, 1 página cada - igual ao pncp.ts)
-    const fetchPromises = TODAS_MODALIDADES.map(async (modalidade) => {
-        try {
-            const params = new URLSearchParams({
-                dataInicial: dataInicio,
-                dataFinal: dataFim,
-                pagina: '1',
-                tamanhoPagina: String(PNCP_MAX_PAGE_SIZE),
-                codigoModalidadeContratacao: String(modalidade),
-            });
-
-            const response = await fetch(`${PNCP_BASE_URL}/contratacoes/publicacao?${params}`, {
-                headers: {
-                    'Accept': 'application/json',
-                },
-                cache: 'no-store',
-            });
-
-            if (!response.ok) {
-                return [];
-            }
-
-            const text = await response.text();
-            if (!text || text.trim() === '') {
-                return [];
-            }
-
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch {
-                return [];
-            }
-
-            return data.data || [];
-        } catch (error) {
-            console.error(`Erro na modalidade ${modalidade}:`, error);
-            return [];
-        }
+    const resultado = await buscarLicitacoesPNCP({
+        dataInicial: dataInicio,
+        dataFinal: dataFim,
     });
-
-    const results = await Promise.all(fetchPromises);
-    for (const result of results) {
-        todasLicitacoes.push(...result);
-    }
-
-    return todasLicitacoes;
+    return resultado.data;
 }
 
 function processarEstatisticas(licitacoes: PNCPContratacao[]): EstatisticasGerais {

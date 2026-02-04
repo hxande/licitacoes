@@ -9,6 +9,7 @@ import { ModalPerfilEmpresa } from '@/components/ModalPerfilEmpresa';
 import { ModalResumoEdital } from '@/components/ModalResumoEdital';
 import { useLicitacoes } from '@/hooks/useLicitacoes';
 import { useFavoritos } from '@/hooks/useFavoritos';
+import { usePipeline } from '@/hooks/usePipeline';
 import { usePerfilEmpresa } from '@/hooks/usePerfilEmpresa';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { Building2, Target, Zap, Heart, BarChart3, UserCog, Sparkles, Kanban, User, Loader2, FileUp, BrainCircuit } from 'lucide-react';
@@ -17,7 +18,8 @@ export default function Home() {
   const router = useRouter();
   const { usuario, carregando: carregandoAuth, autenticado } = useAuthContext();
   const { licitacoes, loading, error, meta, buscar, carregarMais, irParaPagina } = useLicitacoes();
-  const { favoritos, toggleFavorito, totalFavoritos } = useFavoritos();
+  const { favoritos, toggleFavorito, totalFavoritos, loaded: favoritosLoaded } = useFavoritos();
+  const { carregado: pipelineLoaded } = usePipeline();
   const { perfil, salvarPerfil, limparPerfil, calcularMatch, temPerfil, loaded } = usePerfilEmpresa();
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
   const [modalResumoAberto, setModalResumoAberto] = useState(false);
@@ -245,7 +247,7 @@ export default function Home() {
 
         <ListaLicitacoes
           licitacoes={licitacoesComMatch}
-          loading={loading}
+          loading={loading || !favoritosLoaded || !pipelineLoaded}
           error={error}
           meta={meta}
           onCarregarMais={carregarMais}

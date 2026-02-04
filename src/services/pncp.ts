@@ -513,6 +513,41 @@ function extractAreaAtuacao(objeto: string): string {
 // Limite máximo da API do PNCP
 const PNCP_MAX_PAGE_SIZE = 50;
 
+// Função auxiliar para fetch com retry e timeout
+async function fetchWithRetry(
+    url: string,
+    options: RequestInit,
+    maxRetries: number = 2,
+    timeoutMs: number = 15000
+): Promise<Response> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+            const response = await fetch(url, {
+                ...options,
+                signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+            return response;
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+
+            // Se não for última tentativa, aguardar antes de retry (backoff exponencial)
+            if (attempt < maxRetries) {
+                const delay = Math.pow(2, attempt) * 500; // 500ms, 1000ms, 2000ms...
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }
+
+    throw lastError || new Error('Fetch failed after retries');
+}
+
 export async function buscarLicitacoesPNCP(params: {
     dataInicial: string;
     dataFinal: string;
@@ -528,6 +563,7 @@ export async function buscarLicitacoesPNCP(params: {
     const allData: PNCPContratacao[] = [];
     let totalRegistros = 0;
     let totalPaginasMax = 1;
+    let errosModalidades: string[] = [];
 
     // Buscar todas as modalidades em paralelo para melhor performance
     const fetchPromises = modalidades.map(async (modalidade) => {
@@ -536,7 +572,7 @@ export async function buscarLicitacoesPNCP(params: {
                 dataInicial: params.dataInicial,
                 dataFinal: params.dataFinal,
                 pagina: String(params.pagina || 1),
-                tamanhoPagina: String(PNCP_MAX_PAGE_SIZE), // Usar limite máximo da API
+                tamanhoPagina: String(PNCP_MAX_PAGE_SIZE),
                 codigoModalidadeContratacao: String(modalidade),
             });
 
@@ -546,48 +582,88 @@ export async function buscarLicitacoesPNCP(params: {
 
             const url = `${PNCP_BASE_URL}/contratacoes/publicacao?${searchParams.toString()}`;
 
-            const response = await fetch(url, {
+            const response = await fetchWithRetry(url, {
                 headers: {
                     'Accept': 'application/json',
                 },
-                cache: 'no-store', // Desabilitar cache para garantir dados frescos
+                cache: 'no-store',
             });
 
             if (response.ok) {
                 const text = await response.text();
                 if (!text || text.trim() === '') {
                     console.warn(`[PNCP] Empty response for modalidade ${modalidade}`);
-                    return { data: [], totalRegistros: 0, totalPaginas: 1 };
+                    return { modalidade, data: [], totalRegistros: 0, totalPaginas: 1, success: true };
                 }
                 try {
                     const rawData = JSON.parse(text);
                     return {
+                        modalidade,
                         data: rawData.data || [],
                         totalRegistros: rawData.totalRegistros || 0,
                         totalPaginas: rawData.totalPaginas || 1,
+                        success: true,
                     };
                 } catch (parseError) {
                     console.error(`[PNCP] JSON parse error for modalidade ${modalidade}:`, parseError);
-                    return { data: [], totalRegistros: 0, totalPaginas: 1 };
+                    return { modalidade, data: [], totalRegistros: 0, totalPaginas: 1, success: false, error: 'JSON parse error' };
                 }
             }
             console.error(`[PNCP] Response ${response.status} for modalidade ${modalidade}`);
-            return { data: [], totalRegistros: 0, totalPaginas: 1 };
+            return { modalidade, data: [], totalRegistros: 0, totalPaginas: 1, success: false, error: `HTTP ${response.status}` };
         } catch (error) {
-            console.error(`Erro ao buscar modalidade ${modalidade}:`, error);
-            return { data: [], totalRegistros: 0, totalPaginas: 1 };
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`Erro ao buscar modalidade ${modalidade}:`, errorMsg);
+            return { modalidade, data: [], totalRegistros: 0, totalPaginas: 1, success: false, error: errorMsg };
         }
     });
 
-    const results = await Promise.all(fetchPromises);
+    // Usar Promise.allSettled para capturar todos os resultados (sucesso e falha)
+    const settledResults = await Promise.allSettled(fetchPromises);
 
-    for (const result of results) {
-        if (result.data && Array.isArray(result.data)) {
-            allData.push(...result.data);
-            totalRegistros += result.totalRegistros;
-            totalPaginasMax = Math.max(totalPaginasMax, result.totalPaginas);
+    // Processar resultados na ordem das modalidades (determinístico)
+    for (let i = 0; i < settledResults.length; i++) {
+        const settled = settledResults[i];
+        const modalidade = modalidades[i];
+
+        if (settled.status === 'fulfilled') {
+            const result = settled.value;
+            if (result.data && Array.isArray(result.data)) {
+                allData.push(...result.data);
+                totalRegistros += result.totalRegistros;
+                totalPaginasMax = Math.max(totalPaginasMax, result.totalPaginas);
+            }
+            if (!result.success && result.error) {
+                errosModalidades.push(`Modalidade ${modalidade}: ${result.error}`);
+            }
+        } else {
+            errosModalidades.push(`Modalidade ${modalidade}: ${settled.reason}`);
         }
     }
+
+    // Log de erros para diagnóstico (se houver)
+    if (errosModalidades.length > 0) {
+        console.warn(`[PNCP] Erros em ${errosModalidades.length} modalidade(s):`, errosModalidades);
+    }
+
+    // ORDENAÇÃO DETERMINÍSTICA: garantir mesma ordem sempre
+    // Ordena por: dataPublicacaoPncp (DESC) -> anoCompra (DESC) -> sequencialCompra (DESC) -> CNPJ (ASC)
+    allData.sort((a, b) => {
+        // 1. Data de publicação (mais recente primeiro)
+        const dataComp = (b.dataPublicacaoPncp || '').localeCompare(a.dataPublicacaoPncp || '');
+        if (dataComp !== 0) return dataComp;
+
+        // 2. Ano da compra (mais recente primeiro)
+        const anoComp = (b.anoCompra || 0) - (a.anoCompra || 0);
+        if (anoComp !== 0) return anoComp;
+
+        // 3. Sequencial da compra (maior primeiro)
+        const seqComp = (b.sequencialCompra || 0) - (a.sequencialCompra || 0);
+        if (seqComp !== 0) return seqComp;
+
+        // 4. CNPJ do órgão (ordem alfabética para desempate final)
+        return (a.orgaoEntidade?.cnpj || '').localeCompare(b.orgaoEntidade?.cnpj || '');
+    });
 
     const pagina = params.pagina || 1;
     const tamanhoPagina = params.tamanhoPagina || 20;
