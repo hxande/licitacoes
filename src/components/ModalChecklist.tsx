@@ -31,8 +31,9 @@ function calcularStatusDocumento(doc: DocumentoChecklist): StatusDocumento {
 }
 
 // Extrair CNPJ, ano e sequencial do ID da licitação
-function extrairDadosId(id: string): { cnpj: string; ano: string; sequencial: string } | null {
-    // Formato: CNPJ-ANO-SEQUENCIAL (ex: 00394460000141-2024-12345)
+function extrairDadosId(id?: string): { cnpj: string; ano: string; sequencial: string } | null {
+    // Formato esperado: CNPJ-ANO-SEQUENCIAL (ex: 00394460000141-2024-12345)
+    if (!id || typeof id !== 'string') return null;
     const partes = id.split('-');
     if (partes.length >= 3) {
         return {

@@ -140,7 +140,7 @@ export function CardPipeline({
                                     <MessageSquare className="w-3.5 h-3.5" />
                                     Observações
                                 </button>
-                                {licitacao.cnpjOrgao && (
+                                {licitacao.cnpjOrgao && licitacao.id && (
                                     <a
                                         href={`https://pncp.gov.br/app/editais/${licitacao.cnpjOrgao}/${licitacao.id.split('-').slice(1).join('/')}`}
                                         target="_blank"
