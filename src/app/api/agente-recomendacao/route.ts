@@ -272,7 +272,7 @@ export async function POST(request: NextRequest) {
             apiKey: apiKey,
             model: 'gemini-2.5-flash',
             temperature: 0.4, // Balanço entre criatividade e consistência
-            maxOutputTokens: 4096,
+            maxOutputTokens: 8192, // Aumentado para garantir resposta completa
         });
 
         // 5. Executar análise do agente
@@ -292,10 +292,30 @@ export async function POST(request: NextRequest) {
 
         try {
             // Limpar possíveis marcadores de código
-            const jsonClean = content
+            let jsonClean = content
                 .replace(/```json\s*/g, '')
                 .replace(/```\s*/g, '')
                 .trim();
+
+            // Tentar reparar JSON incompleto
+            if (!jsonClean.endsWith('}')) {
+                console.warn('JSON incompleto detectado, tentando reparar...');
+                // Contar chaves abertas e fechadas
+                const abertas = (jsonClean.match(/{/g) || []).length;
+                const fechadas = (jsonClean.match(/}/g) || []).length;
+                const colchAbertos = (jsonClean.match(/\[/g) || []).length;
+                const colchFechados = (jsonClean.match(/\]/g) || []).length;
+
+                // Fechar estruturas abertas
+                for (let i = 0; i < abertas - fechadas; i++) {
+                    jsonClean += '}';
+                }
+                for (let i = 0; i < colchAbertos - colchFechados; i++) {
+                    jsonClean += ']';
+                }
+
+                console.log('JSON reparado, tentando parse novamente...');
+            }
 
             const parsed = JSON.parse(jsonClean);
 
@@ -337,10 +357,12 @@ export async function POST(request: NextRequest) {
         } catch (parseError) {
             console.error('Erro ao processar resposta do agente:', parseError);
             console.error('Resposta raw:', content);
+            console.error('Comprimento da resposta:', content.length);
+            console.error('Últimos 500 caracteres:', content.slice(-500));
 
             return NextResponse.json({
                 success: false,
-                error: 'Erro ao processar análise do agente. Tente novamente.'
+                error: 'Erro ao processar análise do agente. A resposta pode estar incompleta. Tente novamente.'
             }, { status: 500 });
         }
 
