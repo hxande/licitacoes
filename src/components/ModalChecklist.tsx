@@ -5,11 +5,12 @@ import { X, Loader2, Sparkles, AlertCircle, List } from 'lucide-react';
 import { Checklist, DocumentoChecklist, DOCUMENTOS_COMUNS, StatusDocumento } from '@/types/checklist';
 import { ChecklistView } from './ChecklistView';
 import { Licitacao } from '@/types/licitacao';
+import { LicitacaoPipeline } from '@/types/pipeline';
 
 interface ModalChecklistProps {
     isOpen: boolean;
     onClose: () => void;
-    licitacao?: Licitacao;
+    licitacao?: Licitacao | LicitacaoPipeline;
 }
 
 const STORAGE_KEY = 'licitacoes_checklists';
