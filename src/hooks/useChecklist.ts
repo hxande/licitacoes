@@ -12,6 +12,21 @@ import { useAuthContext } from '@/contexts/AuthContext';
 
 const STORAGE_KEY = 'licitacoes_checklists';
 
+function convertChecklistFromDb(data: any): Checklist {
+    if (!data) return null as any;
+    return {
+        id: data.id,
+        licitacaoId: data.licitacao_id,
+        titulo: data.titulo,
+        orgao: data.orgao,
+        objeto: data.objeto,
+        dataAbertura: data.data_abertura,
+        documentos: data.documentos || [],
+        criadoEm: data.criado_em,
+        atualizadoEm: data.atualizado_em,
+    };
+}
+
 function generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }

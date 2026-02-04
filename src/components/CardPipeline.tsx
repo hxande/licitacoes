@@ -14,10 +14,12 @@ import {
     Check,
     CheckCircle2,
     AlertCircle,
+    FileText,
 } from 'lucide-react';
 import { LicitacaoPipeline, StatusPipeline, COLUNAS_PIPELINE } from '@/types/pipeline';
 import { Checklist } from '@/types/checklist';
 import { useChecklist } from '@/hooks/useChecklist';
+import { ModalChecklist } from './ModalChecklist';
 
 interface CardPipelineProps {
     licitacao: LicitacaoPipeline;
@@ -37,10 +39,18 @@ export function CardPipeline({
     const [menuAberto, setMenuAberto] = useState(false);
     const [editandoObs, setEditandoObs] = useState(false);
     const [obsTemp, setObsTemp] = useState(licitacao.observacoes || '');
+    const [modalChecklistAberto, setModalChecklistAberto] = useState(false);
     const { checklists } = useChecklist();
 
     // Buscar checklist desta licitação
     const checklistDaLicitacao = checklists.find(c => c.licitacaoId === licitacao.id);
+
+    useEffect(() => {
+        if (licitacao.id) {
+            console.log('Procurando checklist para licitacao:', licitacao.id);
+            console.log('Checklists disponíveis:', checklists.map(c => ({ id: c.id, licitacaoId: c.licitacaoId })));
+        }
+    }, [licitacao.id, checklists]);
 
     const formatarMoeda = (valor: number | undefined) => {
         if (!valor) return 'Não informado';
@@ -196,7 +206,13 @@ export function CardPipeline({
             {checklistDaLicitacao && (
                 <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-blue-900">Checklist</span>
+                        <button
+                            onClick={() => setModalChecklistAberto(true)}
+                            className="text-xs font-medium text-blue-900 hover:text-blue-600 flex items-center gap-1 transition-colors"
+                        >
+                            <FileText className="w-3 h-3" />
+                            Checklist
+                        </button>
                         <span className="text-xs font-bold text-blue-600">
                             {calcularResumoChecklist(checklistDaLicitacao).percentualConcluido}%
                         </span>
@@ -268,6 +284,13 @@ export function CardPipeline({
                     </div>
                 </div>
             )}
+
+            {/* Modal Checklist */}
+            <ModalChecklist
+                isOpen={modalChecklistAberto}
+                onClose={() => setModalChecklistAberto(false)}
+                licitacao={licitacao}
+            />
         </div>
     );
 }
