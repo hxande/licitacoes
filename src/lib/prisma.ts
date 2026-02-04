@@ -7,10 +7,13 @@ declare global {
 
 // Adicionar connection_limit à URL se não existir (para PgBouncer/Supabase)
 function getDatabaseUrl(): string {
-    const baseUrl = process.env.LICITACOES__POSTGRES_URL_NON_POOLING || '';
+    // Priorizar PRISMA_URL (porta 6543 com pgbouncer) sobre NON_POOLING (porta 5432)
+    const baseUrl = process.env.LICITACOES__POSTGRES_PRISMA_URL
+        || process.env.LICITACOES__POSTGRES_URL_NON_POOLING
+        || '';
 
-    // Se já tem connection_limit ou pgbouncer, usar como está
-    if (baseUrl.includes('connection_limit') || baseUrl.includes('pgbouncer')) {
+    // Se já tem connection_limit, usar como está
+    if (baseUrl.includes('connection_limit')) {
         return baseUrl;
     }
 
