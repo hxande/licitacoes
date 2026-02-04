@@ -71,12 +71,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-600 rounded-xl">
-                <Building2 className="w-8 h-8 text-white" />
-              </div>
+              <img src="/logo.jpg" alt="Licitaly" className="w-14 h-14 rounded-xl object-cover" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  Licitações Brasil
+                  Licitaly
                 </h1>
                 <p className="text-gray-500">
                   Encontre oportunidades de licitações públicas

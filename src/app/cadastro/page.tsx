@@ -123,11 +123,9 @@ export default function CadastroPage() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
                 {/* Logo e Título */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-xl mb-4">
-                        <Building2 className="w-8 h-8 text-white" />
-                    </div>
+                    <img src="/logo.jpg" alt="Licitaly" className="w-20 h-20 rounded-xl object-cover mx-auto mb-4" />
                     <h1 className="text-2xl font-bold text-gray-900">Criar Conta</h1>
-                    <p className="text-gray-500 mt-1">Cadastre-se para acessar o sistema</p>
+                    <p className="text-gray-500 mt-1">Cadastre-se para acessar o Licitaly</p>
                 </div>
 
                 {/* Formulário */}

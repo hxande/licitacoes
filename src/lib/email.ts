@@ -68,7 +68,7 @@ export async function enviarEmailVerificacao(email: string, nome: string, token:
             </div>
             
             <h1 style="color: #1f2937; font-size: 24px; text-align: center; margin-bottom: 20px;">
-                Bem-vindo ao Licitações Brasil!
+                Bem-vindo ao Licitaly!
             </h1>
             
             <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
@@ -104,7 +104,7 @@ export async function enviarEmailVerificacao(email: string, nome: string, token:
         </div>
         
         <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 20px;">
-            © ${new Date().getFullYear()} Licitações Brasil. Todos os direitos reservados.
+            © ${new Date().getFullYear()} Licitaly. Todos os direitos reservados.
         </p>
     </div>
 </body>
@@ -112,7 +112,7 @@ export async function enviarEmailVerificacao(email: string, nome: string, token:
     `;
 
     const text = `
-Bem-vindo ao Licitações Brasil!
+Bem-vindo ao Licitaly!
 
 Olá ${nome},
 
@@ -127,7 +127,7 @@ Se você não solicitou esta conta, ignore este email.
 
     return enviarEmail({
         to: email,
-        subject: '✅ Verifique seu email - Licitações Brasil',
+        subject: '✅ Verifique seu email - Licitaly',
         html,
         text,
     });
@@ -189,7 +189,7 @@ export async function enviarEmailResetSenha(email: string, nome: string, token: 
         </div>
         
         <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 20px;">
-            © ${new Date().getFullYear()} Licitações Brasil. Todos os direitos reservados.
+            © ${new Date().getFullYear()} Licitaly. Todos os direitos reservados.
         </p>
     </div>
 </body>
@@ -213,7 +213,7 @@ Se você não solicitou a redefinição de senha, ignore este email.
 
     return enviarEmail({
         to: email,
-        subject: '🔐 Redefinir senha - Licitações Brasil',
+        subject: '🔐 Redefinir senha - Licitaly',
         html,
         text,
     });

@@ -3,7 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata: Metadata = {
-  title: "Licitações Brasil - Encontre Oportunidades",
+  title: "Licitaly - Encontre Oportunidades",
   description: "Aplicação para busca e filtro de licitações públicas no Brasil.",
 };
 
