@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma, { withReconnect } from '@/lib/prisma';
-import { isDbAvailable } from '@/lib/db';
 import { jsonResponse } from '@/lib/response';
 import { getUsuarioFromRequest, respostaNaoAutorizado } from '@/lib/auth';
 
@@ -9,8 +8,6 @@ export async function GET(req: NextRequest) {
         const usuario = await getUsuarioFromRequest(req);
         if (!usuario) return respostaNaoAutorizado();
 
-        const ok = await isDbAvailable();
-        if (!ok) return NextResponse.json([], { status: 503 });
         const rows = await withReconnect((p: any) => p.pipeline.findMany({ where: { user_id: usuario.userId }, orderBy: { criado_em: 'desc' } })) as any[];
         return jsonResponse(rows || []);
     } catch (err) {
@@ -24,8 +21,6 @@ export async function POST(req: NextRequest) {
         const usuario = await getUsuarioFromRequest(req);
         if (!usuario) return respostaNaoAutorizado();
 
-        const ok = await isDbAvailable();
-        if (!ok) return NextResponse.json({ error: 'DB inacessível' }, { status: 503 });
         const body = await req.json();
         const { id, objeto, orgao, uf, valorEstimado, dataAbertura, modalidade, cnpjOrgao, status, observacoes } = body;
         await withReconnect((p: any) => p.pipeline.create({
@@ -55,8 +50,6 @@ export async function PUT(req: NextRequest) {
         const usuario = await getUsuarioFromRequest(req);
         if (!usuario) return respostaNaoAutorizado();
 
-        const ok = await isDbAvailable();
-        if (!ok) return NextResponse.json({ error: 'DB inacessível' }, { status: 503 });
         const body = await req.json();
         const { id, status, observacoes } = body;
         await withReconnect((p: any) => p.pipeline.updateMany({ where: { id, user_id: usuario.userId as any }, data: { status: status ?? undefined, observacoes: observacoes ?? undefined, atualizado_em: new Date() } }));
@@ -72,8 +65,6 @@ export async function DELETE(req: NextRequest) {
         const usuario = await getUsuarioFromRequest(req);
         if (!usuario) return respostaNaoAutorizado();
 
-        const ok = await isDbAvailable();
-        if (!ok) return NextResponse.json({ error: 'DB inacessível' }, { status: 503 });
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id');
         if (!id) return NextResponse.json({ error: 'id missing' }, { status: 400 });

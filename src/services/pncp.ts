@@ -554,7 +554,6 @@ export async function buscarLicitacoesPNCP(params: {
             });
 
             if (response.ok) {
-                console.log(response)
                 const text = await response.text();
                 if (!text || text.trim() === '') {
                     console.warn(`[PNCP] Empty response for modalidade ${modalidade}`);
@@ -562,7 +561,6 @@ export async function buscarLicitacoesPNCP(params: {
                 }
                 try {
                     const rawData = JSON.parse(text);
-                    console.log(rawData);
                     return {
                         data: rawData.data || [],
                         totalRegistros: rawData.totalRegistros || 0,
