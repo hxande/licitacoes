@@ -65,8 +65,9 @@ export default function CadastroPage() {
 
     if (carregandoAuth) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-white animate-spin" />
+            <div className="min-h-screen bg-gradient-to-br from-[#0D4F8B] to-[#1565C0] flex flex-col items-center justify-center gap-4">
+                <img src="/logo/licitaly-icon.svg" alt="Licitaly" className="w-20 h-20" style={{ filter: 'brightness(0) invert(1)' }} />
+                <Loader2 className="w-6 h-6 text-white animate-spin" />
             </div>
         );
     }
@@ -74,10 +75,10 @@ export default function CadastroPage() {
     // Tela de sucesso
     if (sucesso) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-gradient-to-br from-[#0D4F8B] to-[#1565C0] flex items-center justify-center p-4">
                 <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center">
-                    <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
-                        <CheckCircle className="w-10 h-10 text-green-600" />
+                    <div className="inline-flex items-center justify-center w-20 h-20 bg-[#4CAF50]/10 rounded-full mb-6">
+                        <CheckCircle className="w-10 h-10 text-[#4CAF50]" />
                     </div>
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">Conta criada com sucesso!</h1>
                     <p className="text-gray-600 mb-6">
@@ -119,13 +120,16 @@ export default function CadastroPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-[#0D4F8B] to-[#1565C0] flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
                 {/* Logo e Título */}
                 <div className="text-center mb-8">
-                    <img src="/logo.jpg" alt="Licitaly" className="w-20 h-20 rounded-xl object-cover mx-auto mb-4" />
-                    <h1 className="text-2xl font-bold text-gray-900">Criar Conta</h1>
-                    <p className="text-gray-500 mt-1">Cadastre-se para acessar o Licitaly</p>
+                    <img src="/logo/licitaly-icon.svg" alt="Licitaly" className="w-20 h-20 mx-auto mb-4" />
+                    <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                        <span style={{ color: '#0D4F8B' }}>Lic</span>
+                        <span style={{ color: '#4CAF50' }}>italy</span>
+                    </h1>
+                    <p className="text-gray-500 mt-1">Cadastre-se para acessar a plataforma</p>
                 </div>
 
                 {/* Formulário */}

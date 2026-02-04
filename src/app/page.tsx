@@ -59,8 +59,9 @@ export default function Home() {
   // Loading de autenticação
   if (carregandoAuth || !autenticado) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col items-center justify-center gap-4">
+        <img src="/logo/licitaly-icon.svg" alt="Licitaly" className="w-16 h-16 animate-pulse" />
+        <Loader2 className="w-6 h-6 text-[#0D4F8B] animate-spin" />
       </div>
     );
   }
@@ -68,15 +69,12 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <header className="bg-white shadow-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img src="/logo.jpg" alt="Licitaly" className="w-14 h-14 rounded-xl object-cover" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Licitaly
-                </h1>
-                <p className="text-gray-500">
+            <div className="flex items-center gap-3">
+              <img src="/logo/licitaly-full.svg" alt="Licitaly" className="h-12 w-auto" />
+              <div className="hidden sm:block border-l border-gray-200 pl-3">
+                <p className="text-sm text-gray-500">
                   Encontre oportunidades de licitações públicas
                 </p>
               </div>

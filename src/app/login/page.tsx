@@ -74,19 +74,23 @@ export default function LoginPage() {
 
     if (carregandoAuth) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-white animate-spin" />
+            <div className="min-h-screen bg-gradient-to-br from-[#0D4F8B] to-[#1565C0] flex flex-col items-center justify-center gap-4">
+                <img src="/logo/licitaly-icon.svg" alt="Licitaly" className="w-20 h-20" style={{ filter: 'brightness(0) invert(1)' }} />
+                <Loader2 className="w-6 h-6 text-white animate-spin" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-[#0D4F8B] to-[#1565C0] flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
                 {/* Logo e Título */}
                 <div className="text-center mb-8">
-                    <img src="/logo.jpg" alt="Licitaly" className="w-20 h-20 rounded-xl object-cover mx-auto mb-4" />
-                    <h1 className="text-2xl font-bold text-gray-900">Licitaly</h1>
+                    <img src="/logo/licitaly-icon.svg" alt="Licitaly" className="w-20 h-20 mx-auto mb-4" />
+                    <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                        <span style={{ color: '#0D4F8B' }}>Lic</span>
+                        <span style={{ color: '#4CAF50' }}>italy</span>
+                    </h1>
                     <p className="text-gray-500 mt-1">Acesse sua conta</p>
                 </div>
 

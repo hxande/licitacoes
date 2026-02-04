@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, Loader2, CheckCircle, XCircle, Mail } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 function VerificarEmailContent() {
     const searchParams = useSearchParams();
@@ -47,16 +47,14 @@ function VerificarEmailContent() {
     }, [token]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-[#0D4F8B] to-[#1565C0] flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center">
                 {/* Logo */}
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-xl mb-6">
-                    <Building2 className="w-8 h-8 text-white" />
-                </div>
+                <img src="/logo/licitaly-icon.svg" alt="Licitaly" className="w-16 h-16 mx-auto mb-6" />
 
                 {status === 'verificando' && (
                     <>
-                        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+                        <Loader2 className="w-12 h-12 text-[#0D4F8B] animate-spin mx-auto mb-4" />
                         <h1 className="text-2xl font-bold text-gray-900 mb-2">Verificando...</h1>
                         <p className="text-gray-600">Aguarde enquanto verificamos seu email.</p>
                     </>
@@ -64,14 +62,14 @@ function VerificarEmailContent() {
 
                 {status === 'sucesso' && (
                     <>
-                        <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
-                            <CheckCircle className="w-10 h-10 text-green-600" />
+                        <div className="inline-flex items-center justify-center w-20 h-20 bg-[#4CAF50]/10 rounded-full mb-6">
+                            <CheckCircle className="w-10 h-10 text-[#4CAF50]" />
                         </div>
                         <h1 className="text-2xl font-bold text-gray-900 mb-2">Email Verificado!</h1>
                         <p className="text-gray-600 mb-6">{mensagem}</p>
                         <Link
                             href="/login"
-                            className="inline-block w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
+                            className="inline-block w-full py-3 bg-[#0D4F8B] text-white font-medium rounded-lg hover:bg-[#0D4F8B]/90 transition"
                         >
                             Fazer Login
                         </Link>
@@ -88,7 +86,7 @@ function VerificarEmailContent() {
                         <div className="space-y-3">
                             <Link
                                 href="/login"
-                                className="block w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
+                                className="block w-full py-3 bg-[#0D4F8B] text-white font-medium rounded-lg hover:bg-[#0D4F8B]/90 transition"
                             >
                                 Ir para Login
                             </Link>
@@ -109,8 +107,9 @@ function VerificarEmailContent() {
 export default function VerificarEmailPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-white animate-spin" />
+            <div className="min-h-screen bg-gradient-to-br from-[#0D4F8B] to-[#1565C0] flex flex-col items-center justify-center gap-4">
+                <img src="/logo/licitaly-icon.svg" alt="Licitaly" className="w-16 h-16" style={{ filter: 'brightness(0) invert(1)' }} />
+                <Loader2 className="w-6 h-6 text-white animate-spin" />
             </div>
         }>
             <VerificarEmailContent />
