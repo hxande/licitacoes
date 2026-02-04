@@ -27,6 +27,9 @@ interface ListaLicitacoesProps {
     favoritos: Set<string>;
     onToggleFavorito: (id: string) => void;
     perfil?: PerfilEmpresa | null;
+    // Pipeline props - centralizados para evitar múltiplas chamadas
+    pipelineIds?: Set<string>;
+    onAdicionarPipeline?: (licitacao: Licitacao) => void;
 }
 
 function Paginacao({
@@ -119,8 +122,8 @@ function Paginacao({
                             onClick={() => onIrParaPagina(pagina)}
                             disabled={loading}
                             className={`min-w-[40px] h-10 rounded-lg font-medium transition ${pagina === paginaAtual
-                                    ? 'bg-blue-600 text-white'
-                                    : 'border border-gray-200 hover:bg-gray-50 text-gray-700'
+                                ? 'bg-blue-600 text-white'
+                                : 'border border-gray-200 hover:bg-gray-50 text-gray-700'
                                 } disabled:opacity-50`}
                         >
                             {pagina}
@@ -162,6 +165,8 @@ export function ListaLicitacoes({
     favoritos,
     onToggleFavorito,
     perfil,
+    pipelineIds = new Set(),
+    onAdicionarPipeline,
 }: ListaLicitacoesProps) {
     const [mostrarApenasFavoritos, setMostrarApenasFavoritos] = useState(false);
 
@@ -237,11 +242,10 @@ export function ListaLicitacoes({
                     {/* Botão Ver Favoritos */}
                     <button
                         onClick={() => setMostrarApenasFavoritos(!mostrarApenasFavoritos)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                            mostrarApenasFavoritos
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${mostrarApenasFavoritos
                                 ? 'bg-pink-600 text-white hover:bg-pink-700'
                                 : 'bg-white border border-gray-200 text-gray-700 hover:bg-pink-50 hover:border-pink-300 hover:text-pink-600'
-                        }`}
+                            }`}
                     >
                         <Heart className={`w-4 h-4 ${mostrarApenasFavoritos ? 'fill-current' : ''}`} />
                         {mostrarApenasFavoritos ? 'Ver Todas' : `Favoritas (${totalFavoritos})`}
@@ -278,6 +282,8 @@ export function ListaLicitacoes({
                             onToggleFavorito={onToggleFavorito}
                             match={licitacao.match}
                             perfil={perfil}
+                            jaEstaNoPipeline={pipelineIds.has(licitacao.id)}
+                            onAdicionarPipeline={onAdicionarPipeline}
                         />
                     ))}
                 </div>

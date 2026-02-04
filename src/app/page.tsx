@@ -19,10 +19,13 @@ export default function Home() {
   const { usuario, carregando: carregandoAuth, autenticado } = useAuthContext();
   const { licitacoes, loading, error, meta, buscar, carregarMais, irParaPagina } = useLicitacoes();
   const { favoritos, toggleFavorito, totalFavoritos, loaded: favoritosLoaded } = useFavoritos();
-  const { carregado: pipelineLoaded } = usePipeline();
+  const { licitacoes: pipelineLicitacoes, adicionarAoPipeline, carregado: pipelineLoaded } = usePipeline();
   const { perfil, salvarPerfil, limparPerfil, calcularMatch, temPerfil, loaded } = usePerfilEmpresa();
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
   const [modalResumoAberto, setModalResumoAberto] = useState(false);
+
+  // Criar Set de IDs do pipeline para verificação rápida
+  const pipelineIds = new Set(pipelineLicitacoes.map(l => l.id));
 
   // Redirecionar para login se não autenticado
   useEffect(() => {
@@ -255,6 +258,8 @@ export default function Home() {
           favoritos={favoritos}
           onToggleFavorito={toggleFavorito}
           perfil={perfil}
+          pipelineIds={pipelineIds}
+          onAdicionarPipeline={adicionarAoPipeline}
         />
       </div>
 

@@ -25,7 +25,6 @@ import { ModalAnaliseIA } from './ModalAnaliseIA';
 import { ModalMatchIA } from './ModalMatchIA';
 import { ModalAnaliseMercado } from './ModalAnaliseMercado';
 import { BadgeMatch } from './BadgeMatch';
-import { usePipeline } from '@/hooks/usePipeline';
 
 interface LicitacaoCardProps {
     licitacao: Licitacao;
@@ -33,19 +32,27 @@ interface LicitacaoCardProps {
     onToggleFavorito?: (id: string) => void;
     match?: MatchResult | null;
     perfil?: PerfilEmpresa | null;
+    // Pipeline props - evita cada card chamar usePipeline() separadamente
+    jaEstaNoPipeline?: boolean;
+    onAdicionarPipeline?: (licitacao: Licitacao) => void;
 }
 
-export function LicitacaoCard({ licitacao, isFavorito = false, onToggleFavorito, match, perfil }: LicitacaoCardProps) {
+export function LicitacaoCard({
+    licitacao,
+    isFavorito = false,
+    onToggleFavorito,
+    match,
+    perfil,
+    jaEstaNoPipeline = false,
+    onAdicionarPipeline,
+}: LicitacaoCardProps) {
     const [modalAnaliseAberta, setModalAnaliseAberta] = useState(false);
     const [modalMatchIAAberta, setModalMatchIAAberta] = useState(false);
     const [modalMercadoAberta, setModalMercadoAberta] = useState(false);
-    const { licitacoes: licitacoesPipeline, adicionarAoPipeline } = usePipeline();
-
-    const jaEstaNoPipeline = licitacoesPipeline.some(l => l.id === licitacao.id);
 
     const handleAdicionarPipeline = () => {
-        if (!jaEstaNoPipeline) {
-            adicionarAoPipeline(licitacao);
+        if (!jaEstaNoPipeline && onAdicionarPipeline) {
+            onAdicionarPipeline(licitacao);
         }
     };
 
