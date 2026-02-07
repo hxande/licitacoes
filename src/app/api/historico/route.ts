@@ -257,3 +257,23 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+
+// DELETE - Limpar todos os dados históricos
+export async function DELETE() {
+    try {
+        const prisma = (await import('@/lib/prisma')).default;
+        const result = await prisma.historico_contrato.deleteMany();
+
+        return jsonResponse({
+            success: true,
+            deletados: result.count,
+            message: `${result.count} registros removidos`,
+        });
+    } catch (error) {
+        console.error('[Histórico] Erro ao limpar:', error);
+        return jsonResponse(
+            { success: false, error: 'Erro ao limpar histórico' },
+            { status: 500 }
+        );
+    }
+}
