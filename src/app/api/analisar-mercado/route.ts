@@ -3,12 +3,16 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { gerarAnaliseMercado, obterEstatisticasHistorico } from '@/services/historico';
 import { AnaliseMercado } from '@/types/historico';
+import { withReconnect } from '@/lib/prisma';
+import { getUsuarioFromRequest } from '@/lib/auth';
 
 interface RequestData {
+    licitacaoId?: string;
     objeto: string;
     uf?: string;
     cnpjOrgao?: string;
     valorEstimado?: number;
+    forcarNovaAnalise?: boolean;
 }
 
 // Enriquecer análise com IA
@@ -97,6 +101,40 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Obter usuário logado
+        const usuario = await getUsuarioFromRequest(request);
+        const userId = usuario?.userId || BigInt(0);
+
+        // Verificar cache se tiver ID da licitação e não forçar nova análise
+        if (data.licitacaoId && !data.forcarNovaAnalise && userId) {
+            try {
+                const cacheResult = await withReconnect(async (prisma) => {
+                    return prisma.cache_analise_ia.findUnique({
+                        where: {
+                            user_id_licitacao_id_tipo_analise: {
+                                user_id: userId,
+                                licitacao_id: data.licitacaoId!,
+                                tipo_analise: 'mercado',
+                            },
+                        },
+                    });
+                });
+
+                if (cacheResult) {
+                    const stats = await obterEstatisticasHistorico();
+                    return NextResponse.json({
+                        success: true,
+                        analise: cacheResult.resultado as AnaliseMercado,
+                        stats,
+                        fromCache: true,
+                        cachedAt: cacheResult.criado_em,
+                    });
+                }
+            } catch (cacheError) {
+                console.error('Erro ao buscar cache:', cacheError);
+            }
+        }
+
         // Verificar se há dados históricos
         const stats = await obterEstatisticasHistorico();
 
@@ -132,10 +170,42 @@ export async function POST(request: NextRequest) {
             data.valorEstimado
         );
 
+        // Salvar no cache se tiver ID da licitação
+        if (data.licitacaoId && userId) {
+            try {
+                await withReconnect(async (prisma) => {
+                    await prisma.cache_analise_ia.upsert({
+                        where: {
+                            user_id_licitacao_id_tipo_analise: {
+                                user_id: userId,
+                                licitacao_id: data.licitacaoId!,
+                                tipo_analise: 'mercado',
+                            },
+                        },
+                        update: {
+                            resultado: analiseEnriquecida as any,
+                            dados_entrada: data as any,
+                            atualizado_em: new Date(),
+                        },
+                        create: {
+                            user_id: userId,
+                            licitacao_id: data.licitacaoId!,
+                            tipo_analise: 'mercado',
+                            resultado: analiseEnriquecida as any,
+                            dados_entrada: data as any,
+                        },
+                    });
+                });
+            } catch (cacheError) {
+                console.error('Erro ao salvar cache:', cacheError);
+            }
+        }
+
         return NextResponse.json({
             success: true,
             analise: analiseEnriquecida,
             stats,
+            fromCache: false,
         });
 
     } catch (error) {

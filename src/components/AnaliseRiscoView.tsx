@@ -14,6 +14,8 @@ import {
     Lightbulb,
     ThumbsUp,
     RefreshCw,
+    Database,
+    Clock,
 } from 'lucide-react';
 import {
     AnaliseRisco,
@@ -46,11 +48,15 @@ export function AnaliseRiscoView({ licitacao }: AnaliseRiscoViewProps) {
     const [error, setError] = useState<string | null>(null);
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
     const [iniciado, setIniciado] = useState(false);
+    const [fromCache, setFromCache] = useState(false);
+    const [cachedAt, setCachedAt] = useState<string | null>(null);
 
-    const analisarRisco = useCallback(async () => {
+    const analisarRisco = useCallback(async (forcarNovaAnalise = false) => {
         setIniciado(true);
         setLoading(true);
         setError(null);
+        setFromCache(false);
+        setCachedAt(null);
 
         try {
             const dadosId = extrairDadosId(licitacao.id);
@@ -71,6 +77,7 @@ export function AnaliseRiscoView({ licitacao }: AnaliseRiscoViewProps) {
                         dataAbertura: licitacao.dataAbertura,
                         dataEncerramento: licitacao.dataEncerramento,
                     },
+                    forcarNovaAnalise,
                 }),
             });
 
@@ -78,6 +85,8 @@ export function AnaliseRiscoView({ licitacao }: AnaliseRiscoViewProps) {
 
             if (data.success && data.analise) {
                 setAnalise(data.analise);
+                setFromCache(data.fromCache || false);
+                setCachedAt(data.cachedAt || null);
             } else {
                 setError(data.error || 'Não foi possível analisar a licitação');
             }
@@ -147,7 +156,7 @@ export function AnaliseRiscoView({ licitacao }: AnaliseRiscoViewProps) {
                     A IA irá analisar cláusulas, requisitos, prazos e identificar potenciais riscos nesta licitação.
                 </p>
                 <button
-                    onClick={analisarRisco}
+                    onClick={() => analisarRisco()}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 transition font-medium shadow-lg"
                 >
                     <Shield className="w-5 h-5" />
@@ -188,7 +197,7 @@ export function AnaliseRiscoView({ licitacao }: AnaliseRiscoViewProps) {
                 </h3>
                 <p className="text-gray-600 mb-4">{error}</p>
                 <button
-                    onClick={analisarRisco}
+                    onClick={() => analisarRisco()}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
                 >
                     <RefreshCw className="w-4 h-4" />
@@ -202,8 +211,41 @@ export function AnaliseRiscoView({ licitacao }: AnaliseRiscoViewProps) {
 
     const config = NIVEL_RISCO_CONFIG[analise.nivelRisco];
 
+    const formatarDataCache = (dataStr: string) => {
+        try {
+            return new Date(dataStr).toLocaleString('pt-BR');
+        } catch {
+            return dataStr;
+        }
+    };
+
     return (
         <div className="space-y-6">
+            {/* Indicador de Cache */}
+            {fromCache && (
+                <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-blue-700">
+                        <Database className="w-4 h-4" />
+                        <span className="text-sm">
+                            Análise recuperada do cache
+                            {cachedAt && (
+                                <span className="text-blue-500 ml-1">
+                                    <Clock className="w-3 h-3 inline mr-1" />
+                                    {formatarDataCache(cachedAt)}
+                                </span>
+                            )}
+                        </span>
+                    </div>
+                    <button
+                        onClick={() => analisarRisco(true)}
+                        className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                    >
+                        <RefreshCw className="w-3 h-3" />
+                        Re-analisar com IA
+                    </button>
+                </div>
+            )}
+
             {/* Header com Score */}
             <div className="flex items-center gap-6 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl">
                 <div className="flex-shrink-0">{getShieldIcon(analise.nivelRisco)}</div>
@@ -358,7 +400,7 @@ export function AnaliseRiscoView({ licitacao }: AnaliseRiscoViewProps) {
                 Análise realizada em{' '}
                 {new Date(analise.analisadoEm).toLocaleString('pt-BR')}
                 <button
-                    onClick={analisarRisco}
+                    onClick={() => analisarRisco()}
                     className="ml-2 text-blue-600 hover:underline inline-flex items-center gap-1"
                 >
                     <RefreshCw className="w-3 h-3" />

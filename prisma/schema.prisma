@@ -99,3 +99,20 @@ model checklist {
   criado_em      DateTime @default(now())
   atualizado_em  DateTime @default(now())
 }
+
+// Cache de análises de IA para economizar tokens
+model cache_analise_ia {
+  id             String   @id @default(cuid())
+  user_id        BigInt
+  licitacao_id   String
+  tipo_analise   String   // 'risco' | 'match' | 'mercado' | 'proposta'
+  dados_entrada  Json     // Dados de entrada usados na análise (para validar cache)
+  resultado      Json     // Resultado da análise da IA
+  criado_em      DateTime @default(now())
+  atualizado_em  DateTime @default(now())
+
+  @@unique([user_id, licitacao_id, tipo_analise])
+  @@index([user_id])
+  @@index([licitacao_id])
+  @@index([tipo_analise])
+}

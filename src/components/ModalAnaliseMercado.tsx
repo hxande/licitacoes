@@ -14,6 +14,7 @@ import {
     Loader2,
     Database,
     RefreshCw,
+    Clock,
 } from 'lucide-react';
 import { Licitacao } from '@/types/licitacao';
 import { AnaliseMercado } from '@/types/historico';
@@ -39,6 +40,8 @@ export function ModalAnaliseMercado({ isOpen, onClose, licitacao }: ModalAnalise
     const [stats, setStats] = useState<StatsHistorico | null>(null);
     const [erro, setErro] = useState<string | null>(null);
     const [needsLoad, setNeedsLoad] = useState(false);
+    const [fromCache, setFromCache] = useState(false);
+    const [cachedAt, setCachedAt] = useState<string | null>(null);
 
     useEffect(() => {
         if (isOpen && !analise) {
@@ -46,19 +49,23 @@ export function ModalAnaliseMercado({ isOpen, onClose, licitacao }: ModalAnalise
         }
     }, [isOpen]);
 
-    const carregarAnalise = async () => {
+    const carregarAnalise = async (forcarNovaAnalise = false) => {
         setLoading(true);
         setErro(null);
+        setFromCache(false);
+        setCachedAt(null);
 
         try {
             const response = await fetch('/api/analisar-mercado', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    licitacaoId: licitacao.id,
                     objeto: licitacao.objeto,
                     uf: licitacao.uf,
                     cnpjOrgao: licitacao.cnpjOrgao,
                     valorEstimado: licitacao.valorEstimado,
+                    forcarNovaAnalise,
                 }),
             });
 
@@ -68,6 +75,8 @@ export function ModalAnaliseMercado({ isOpen, onClose, licitacao }: ModalAnalise
                 setAnalise(data.analise);
                 setStats(data.stats);
                 setNeedsLoad(false);
+                setFromCache(data.fromCache || false);
+                setCachedAt(data.cachedAt || null);
             } else if (data.needsLoad) {
                 setNeedsLoad(true);
                 setErro('Nenhum dado histórico disponível');
@@ -208,7 +217,7 @@ export function ModalAnaliseMercado({ isOpen, onClose, licitacao }: ModalAnalise
                                 <AlertTriangle className="w-12 h-12 text-red-500 mb-4" />
                                 <p className="text-gray-800 font-medium">{erro}</p>
                                 <button
-                                    onClick={carregarAnalise}
+                                    onClick={() => carregarAnalise()}
                                     className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
                                 >
                                     Tentar novamente
@@ -228,6 +237,31 @@ export function ModalAnaliseMercado({ isOpen, onClose, licitacao }: ModalAnalise
                             </div>
                         ) : (
                             <div className="space-y-6">
+                                {/* Indicador de Cache */}
+                                {fromCache && (
+                                    <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <div className="flex items-center gap-2 text-blue-700">
+                                            <Database className="w-4 h-4" />
+                                            <span className="text-sm">
+                                                Análise recuperada do cache
+                                                {cachedAt && (
+                                                    <span className="text-blue-500 ml-1">
+                                                        <Clock className="w-3 h-3 inline mr-1" />
+                                                        {formatarData(cachedAt)}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => carregarAnalise(true)}
+                                            className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                                        >
+                                            <RefreshCw className="w-3 h-3" />
+                                            Re-analisar com IA
+                                        </button>
+                                    </div>
+                                )}
+
                                 {/* Stats do Histórico */}
                                 {stats && (
                                     <div className="text-xs text-gray-400 flex items-center gap-4 justify-end">
@@ -348,8 +382,8 @@ export function ModalAnaliseMercado({ isOpen, onClose, licitacao }: ModalAnalise
                                                     className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                                                 >
                                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${index === 0 ? 'bg-amber-500' :
-                                                            index === 1 ? 'bg-gray-400' :
-                                                                index === 2 ? 'bg-amber-700' : 'bg-gray-300'
+                                                        index === 1 ? 'bg-gray-400' :
+                                                            index === 2 ? 'bg-amber-700' : 'bg-gray-300'
                                                         }`}>
                                                         {index + 1}
                                                     </div>

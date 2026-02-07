@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { X, FileSearch, Shield, ClipboardList, Loader2, Sparkles, AlertCircle, List, FileText } from 'lucide-react';
+import { X, FileSearch, Shield, ClipboardList, Loader2, Sparkles, AlertCircle, List, FileText, Database, Clock, RefreshCw } from 'lucide-react';
 import { Licitacao } from '@/types/licitacao';
 import { Checklist, DocumentoChecklist, DOCUMENTOS_COMUNS, StatusDocumento } from '@/types/checklist';
 import { AnaliseRiscoView } from './AnaliseRiscoView';
@@ -57,17 +57,22 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
     const [proposta, setProposta] = useState<string | null>(null);
     const [propostaLoading, setPropostaLoading] = useState(false);
     const [propostaError, setPropostaError] = useState<string | null>(null);
+    const [propostaFromCache, setPropostaFromCache] = useState(false);
+    const [propostaCachedAt, setPropostaCachedAt] = useState<string | null>(null);
 
     // Função para gerar proposta
-    const gerarProposta = useCallback(async () => {
+    const gerarProposta = useCallback(async (forcarNovaAnalise = false) => {
         setPropostaLoading(true);
         setPropostaError(null);
+        setPropostaFromCache(false);
+        setPropostaCachedAt(null);
 
         try {
             const response = await fetch('/api/gerar-proposta', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    id: licitacao.id,
                     objeto: licitacao.objeto,
                     orgao: licitacao.orgao,
                     uf: licitacao.uf,
@@ -76,6 +81,7 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
                     valorEstimado: licitacao.valorEstimado,
                     dataAbertura: licitacao.dataAbertura,
                     categorias: licitacao.categorias,
+                    forcarNovaAnalise,
                 }),
             });
 
@@ -83,6 +89,8 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
 
             if (data.success) {
                 setProposta(data.proposta);
+                setPropostaFromCache(data.fromCache || false);
+                setPropostaCachedAt(data.cachedAt || null);
             } else {
                 setPropostaError(data.error || 'Erro ao gerar proposta');
             }
@@ -92,6 +100,14 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
             setPropostaLoading(false);
         }
     }, [licitacao]);
+
+    const formatarDataCache = (dataStr: string) => {
+        try {
+            return new Date(dataStr).toLocaleString('pt-BR');
+        } catch {
+            return dataStr;
+        }
+    };
 
     // Carregar checklist existente quando muda para aba checklist (mas NÃO inicia análise automática)
     useEffect(() => {
@@ -461,7 +477,7 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
                                         A IA irá analisar esta licitação e gerar uma proposta comercial completa e profissional para sua empresa.
                                     </p>
                                     <button
-                                        onClick={gerarProposta}
+                                        onClick={() => gerarProposta()}
                                         className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition font-medium shadow-lg"
                                     >
                                         <Sparkles className="w-5 h-5" />
@@ -494,7 +510,7 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
                                     </h3>
                                     <p className="text-red-600 mb-4">{propostaError}</p>
                                     <button
-                                        onClick={gerarProposta}
+                                        onClick={() => gerarProposta()}
                                         className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
                                     >
                                         Tentar novamente
@@ -504,10 +520,35 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
 
                             {proposta && (
                                 <div>
+                                    {/* Indicador de Cache */}
+                                    {propostaFromCache && (
+                                        <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+                                            <div className="flex items-center gap-2 text-blue-700">
+                                                <Database className="w-4 h-4" />
+                                                <span className="text-sm">
+                                                    Proposta recuperada do cache
+                                                    {propostaCachedAt && (
+                                                        <span className="text-blue-500 ml-1">
+                                                            <Clock className="w-3 h-3 inline mr-1" />
+                                                            {formatarDataCache(propostaCachedAt)}
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <button
+                                                onClick={() => gerarProposta(true)}
+                                                className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                                            >
+                                                <RefreshCw className="w-3 h-3" />
+                                                Re-gerar com IA
+                                            </button>
+                                        </div>
+                                    )}
+
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                                             <Sparkles className="w-5 h-5 text-purple-600" />
-                                            Proposta Gerada
+                                            Proposta {propostaFromCache ? 'Salva' : 'Gerada'}
                                         </h3>
                                         <button
                                             onClick={() => {
@@ -523,16 +564,18 @@ export function ModalAnaliseIA({ licitacao, onClose, abaInicial = 'risco' }: Mod
                                             {proposta}
                                         </pre>
                                     </div>
-                                    <div className="mt-4 flex gap-3">
-                                        <button
-                                            onClick={gerarProposta}
-                                            disabled={propostaLoading}
-                                            className="flex items-center gap-2 px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition"
-                                        >
-                                            <Sparkles className="w-4 h-4" />
-                                            Gerar Nova Versão
-                                        </button>
-                                    </div>
+                                    {!propostaFromCache && (
+                                        <div className="mt-4 flex gap-3">
+                                            <button
+                                                onClick={() => gerarProposta(true)}
+                                                disabled={propostaLoading}
+                                                className="flex items-center gap-2 px-4 py-2 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition"
+                                            >
+                                                <Sparkles className="w-4 h-4" />
+                                                Gerar Nova Versão
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Brain, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles, Target, Lightbulb, ThumbsUp, ThumbsDown, RefreshCw } from 'lucide-react';
+import { X, Brain, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles, Target, Lightbulb, ThumbsUp, ThumbsDown, RefreshCw, Database, Clock } from 'lucide-react';
 import { Licitacao } from '@/types/licitacao';
 import { PerfilEmpresa } from '@/types/empresa';
 
@@ -26,22 +26,28 @@ export function ModalMatchIA({ licitacao, perfil, onClose }: ModalMatchIAProps) 
     const [analise, setAnalise] = useState<AnaliseMatchIA | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [fromCache, setFromCache] = useState(false);
+    const [cachedAt, setCachedAt] = useState<string | null>(null);
 
-    const analisarMatch = async () => {
+    const analisarMatch = async (forcarNovaAnalise = false) => {
         setLoading(true);
         setError(null);
+        setFromCache(false);
+        setCachedAt(null);
 
         try {
             const response = await fetch('/api/analisar-match', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ licitacao, perfil }),
+                body: JSON.stringify({ licitacao, perfil, forcarNovaAnalise }),
             });
 
             const data = await response.json();
 
             if (data.success) {
                 setAnalise(data.analise);
+                setFromCache(data.fromCache || false);
+                setCachedAt(data.cachedAt || null);
             } else {
                 setError(data.error || 'Erro ao analisar match');
             }
@@ -55,6 +61,14 @@ export function ModalMatchIA({ licitacao, perfil, onClose }: ModalMatchIAProps) 
     useEffect(() => {
         analisarMatch();
     }, []);
+
+    const formatarDataCache = (dataStr: string) => {
+        try {
+            return new Date(dataStr).toLocaleString('pt-BR');
+        } catch {
+            return dataStr;
+        }
+    };
 
     const getNivelStyle = (nivel: string) => {
         switch (nivel) {
@@ -111,7 +125,7 @@ export function ModalMatchIA({ licitacao, perfil, onClose }: ModalMatchIAProps) 
                             </div>
                             <p className="text-red-600 mt-4 font-medium">{error}</p>
                             <button
-                                onClick={analisarMatch}
+                                onClick={() => analisarMatch()}
                                 className="mt-4 flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
                             >
                                 <RefreshCw className="w-4 h-4" />
@@ -120,6 +134,31 @@ export function ModalMatchIA({ licitacao, perfil, onClose }: ModalMatchIAProps) 
                         </div>
                     ) : analise ? (
                         <div className="space-y-6">
+                            {/* Indicador de Cache */}
+                            {fromCache && (
+                                <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div className="flex items-center gap-2 text-blue-700">
+                                        <Database className="w-4 h-4" />
+                                        <span className="text-sm">
+                                            Análise recuperada do cache
+                                            {cachedAt && (
+                                                <span className="text-blue-500 ml-1">
+                                                    <Clock className="w-3 h-3 inline mr-1" />
+                                                    {formatarDataCache(cachedAt)}
+                                                </span>
+                                            )}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => analisarMatch(true)}
+                                        className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                                    >
+                                        <RefreshCw className="w-3 h-3" />
+                                        Re-analisar com IA
+                                    </button>
+                                </div>
+                            )}
+
                             {/* Score principal */}
                             <div className={`p-6 rounded-xl border-2 ${getNivelStyle(analise.nivel).border} ${getNivelStyle(analise.nivel).bg}`}>
                                 <div className="flex items-center justify-between">
@@ -202,8 +241,8 @@ export function ModalMatchIA({ licitacao, perfil, onClose }: ModalMatchIAProps) 
 
                             {/* Recomendação */}
                             <div className={`p-4 rounded-xl border-2 ${analise.nivel === 'Excelente' || analise.nivel === 'Bom'
-                                    ? 'bg-emerald-50 border-emerald-300'
-                                    : 'bg-amber-50 border-amber-300'
+                                ? 'bg-emerald-50 border-emerald-300'
+                                : 'bg-amber-50 border-amber-300'
                                 }`}>
                                 <h3 className="flex items-center gap-2 font-semibold text-gray-800 mb-2">
                                     💡 Recomendação
@@ -237,7 +276,7 @@ export function ModalMatchIA({ licitacao, perfil, onClose }: ModalMatchIAProps) 
                 {/* Footer */}
                 <div className="border-t bg-gray-50 px-6 py-4 flex justify-between items-center">
                     <p className="text-xs text-gray-500">
-                        Análise gerada por IA • Gemini 2.5 Flash
+                        {fromCache ? 'Análise do cache • ' : ''}Análise gerada por IA • Gemini 2.5 Flash
                     </p>
                     <button
                         onClick={onClose}

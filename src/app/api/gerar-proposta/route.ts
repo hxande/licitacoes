@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { withReconnect } from '@/lib/prisma';
+import { getUsuarioFromRequest } from '@/lib/auth';
 
 // Interface para os dados da licitação
 interface LicitacaoData {
+    id?: string;
     objeto: string;
     orgao: string;
     uf: string;
@@ -14,9 +17,71 @@ interface LicitacaoData {
     categorias?: string[];
 }
 
+interface RequestBody {
+    licitacao?: LicitacaoData;
+    // Campos legados (manter compatibilidade)
+    id?: string;
+    objeto?: string;
+    orgao?: string;
+    uf?: string;
+    municipio?: string;
+    modalidade?: string;
+    valorEstimado?: number;
+    dataAbertura?: string;
+    categorias?: string[];
+    forcarNovaAnalise?: boolean;
+}
+
 export async function POST(request: NextRequest) {
     try {
-        const licitacao: LicitacaoData = await request.json();
+        const body: RequestBody = await request.json();
+
+        // Suportar tanto formato antigo quanto novo
+        const licitacao: LicitacaoData = body.licitacao || {
+            id: body.id,
+            objeto: body.objeto || '',
+            orgao: body.orgao || '',
+            uf: body.uf || '',
+            municipio: body.municipio,
+            modalidade: body.modalidade || '',
+            valorEstimado: body.valorEstimado,
+            dataAbertura: body.dataAbertura,
+            categorias: body.categorias,
+        };
+
+        const forcarNovaAnalise = body.forcarNovaAnalise || false;
+
+        // Obter usuário logado
+        const usuario = await getUsuarioFromRequest(request);
+        const userId = usuario?.userId || BigInt(0);
+
+        // Verificar cache se tiver ID da licitação e não forçar nova análise
+        if (licitacao.id && !forcarNovaAnalise && userId) {
+            try {
+                const cacheResult = await withReconnect(async (prisma) => {
+                    return prisma.cache_analise_ia.findUnique({
+                        where: {
+                            user_id_licitacao_id_tipo_analise: {
+                                user_id: userId,
+                                licitacao_id: licitacao.id!,
+                                tipo_analise: 'proposta',
+                            },
+                        },
+                    });
+                });
+
+                if (cacheResult) {
+                    return NextResponse.json({
+                        success: true,
+                        proposta: (cacheResult.resultado as any).proposta,
+                        fromCache: true,
+                        cachedAt: cacheResult.criado_em,
+                    });
+                }
+            } catch (cacheError) {
+                console.error('Erro ao buscar cache:', cacheError);
+            }
+        }
 
         // Verificar se a API key está configurada
         const apiKey = process.env.GOOGLE_API_KEY;
@@ -89,9 +154,41 @@ Por favor, gere uma proposta comercial completa e profissional para participar d
             ? response.content
             : response.content.map(c => 'text' in c ? c.text : '').join('');
 
+        // Salvar no cache se tiver ID da licitação
+        if (licitacao.id && userId) {
+            try {
+                await withReconnect(async (prisma) => {
+                    await prisma.cache_analise_ia.upsert({
+                        where: {
+                            user_id_licitacao_id_tipo_analise: {
+                                user_id: userId,
+                                licitacao_id: licitacao.id!,
+                                tipo_analise: 'proposta',
+                            },
+                        },
+                        update: {
+                            resultado: { proposta: propostaTexto } as any,
+                            dados_entrada: licitacao as any,
+                            atualizado_em: new Date(),
+                        },
+                        create: {
+                            user_id: userId,
+                            licitacao_id: licitacao.id!,
+                            tipo_analise: 'proposta',
+                            resultado: { proposta: propostaTexto } as any,
+                            dados_entrada: licitacao as any,
+                        },
+                    });
+                });
+            } catch (cacheError) {
+                console.error('Erro ao salvar cache:', cacheError);
+            }
+        }
+
         return NextResponse.json({
             success: true,
             proposta: propostaTexto,
+            fromCache: false,
             modelo: 'gemini-2.5-flash',
             tokens: {
                 input: response.usage_metadata?.input_tokens || 0,

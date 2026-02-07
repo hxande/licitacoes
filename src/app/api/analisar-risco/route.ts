@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { AnaliseRisco, ItemRisco, NivelRisco, TipoRisco } from '@/types/analise-risco';
+import { withReconnect } from '@/lib/prisma';
+import { getUsuarioFromRequest } from '@/lib/auth';
 
 interface DadosLicitacao {
     id: string;
@@ -18,6 +20,7 @@ interface RequestBody {
     ano?: string;
     sequencial?: string;
     dadosLicitacao: DadosLicitacao;
+    forcarNovaAnalise?: boolean; // Flag para forçar re-análise
 }
 
 function generateId(): string {
@@ -82,13 +85,46 @@ INFORMAÇÕES DA CONTRATAÇÃO:
 export async function POST(request: NextRequest) {
     try {
         const body: RequestBody = await request.json();
-        const { cnpj, ano, sequencial, dadosLicitacao } = body;
+        const { cnpj, ano, sequencial, dadosLicitacao, forcarNovaAnalise } = body;
 
         if (!dadosLicitacao?.id) {
             return NextResponse.json(
                 { success: false, error: 'ID da licitação é obrigatório' },
                 { status: 400 }
             );
+        }
+
+        // Obter usuário logado
+        const usuario = await getUsuarioFromRequest(request);
+        const userId = usuario?.userId || BigInt(0);
+
+        // Verificar cache se não forçar nova análise
+        if (!forcarNovaAnalise && userId) {
+            try {
+                const cacheResult = await withReconnect(async (prisma) => {
+                    return prisma.cache_analise_ia.findUnique({
+                        where: {
+                            user_id_licitacao_id_tipo_analise: {
+                                user_id: userId,
+                                licitacao_id: dadosLicitacao.id,
+                                tipo_analise: 'risco',
+                            },
+                        },
+                    });
+                });
+
+                if (cacheResult) {
+                    return NextResponse.json({
+                        success: true,
+                        analise: cacheResult.resultado as AnaliseRisco,
+                        fromCache: true,
+                        cachedAt: cacheResult.criado_em,
+                    });
+                }
+            } catch (cacheError) {
+                console.error('Erro ao buscar cache:', cacheError);
+                // Continua para fazer análise se cache falhar
+            }
         }
 
         let textoParaAnalise = '';
@@ -243,9 +279,42 @@ Retorne o JSON com a análise de riscos completa.`;
             analisadoEm: new Date().toISOString(),
         };
 
+        // Salvar no cache
+        if (userId) {
+            try {
+                await withReconnect(async (prisma) => {
+                    await prisma.cache_analise_ia.upsert({
+                        where: {
+                            user_id_licitacao_id_tipo_analise: {
+                                user_id: userId,
+                                licitacao_id: dadosLicitacao.id,
+                                tipo_analise: 'risco',
+                            },
+                        },
+                        update: {
+                            resultado: analise as any,
+                            dados_entrada: { cnpj, ano, sequencial, dadosLicitacao } as any,
+                            atualizado_em: new Date(),
+                        },
+                        create: {
+                            user_id: userId,
+                            licitacao_id: dadosLicitacao.id,
+                            tipo_analise: 'risco',
+                            resultado: analise as any,
+                            dados_entrada: { cnpj, ano, sequencial, dadosLicitacao } as any,
+                        },
+                    });
+                });
+            } catch (cacheError) {
+                console.error('Erro ao salvar cache:', cacheError);
+                // Não falha a requisição se cache falhar
+            }
+        }
+
         return NextResponse.json({
             success: true,
             analise,
+            fromCache: false,
         });
     } catch (error) {
         console.error('Erro ao analisar risco:', error);

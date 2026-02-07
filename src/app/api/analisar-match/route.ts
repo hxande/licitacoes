@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { withReconnect } from '@/lib/prisma';
+import { getUsuarioFromRequest } from '@/lib/auth';
 
 interface PerfilEmpresa {
     nomeEmpresa: string;
@@ -39,9 +41,15 @@ interface AnaliseMatch {
     dicasParticipacao: string[];
 }
 
+interface RequestBody {
+    licitacao: LicitacaoData;
+    perfil: PerfilEmpresa;
+    forcarNovaAnalise?: boolean;
+}
+
 export async function POST(request: NextRequest) {
     try {
-        const { licitacao, perfil }: { licitacao: LicitacaoData; perfil: PerfilEmpresa } = await request.json();
+        const { licitacao, perfil, forcarNovaAnalise }: RequestBody = await request.json();
 
         // Validar dados
         if (!licitacao || !perfil) {
@@ -49,6 +57,38 @@ export async function POST(request: NextRequest) {
                 { success: false, error: 'Dados da licitação e perfil são obrigatórios' },
                 { status: 400 }
             );
+        }
+
+        // Obter usuário logado
+        const usuario = await getUsuarioFromRequest(request);
+        const userId = usuario?.userId || BigInt(0);
+
+        // Verificar cache se não forçar nova análise
+        if (!forcarNovaAnalise && userId) {
+            try {
+                const cacheResult = await withReconnect(async (prisma) => {
+                    return prisma.cache_analise_ia.findUnique({
+                        where: {
+                            user_id_licitacao_id_tipo_analise: {
+                                user_id: userId,
+                                licitacao_id: licitacao.id,
+                                tipo_analise: 'match',
+                            },
+                        },
+                    });
+                });
+
+                if (cacheResult) {
+                    return NextResponse.json({
+                        success: true,
+                        analise: cacheResult.resultado as AnaliseMatch,
+                        fromCache: true,
+                        cachedAt: cacheResult.criado_em,
+                    });
+                }
+            } catch (cacheError) {
+                console.error('Erro ao buscar cache:', cacheError);
+            }
         }
 
         // Verificar API key
@@ -217,9 +257,41 @@ Analise cuidadosamente todos os fatores acima e retorne APENAS o JSON com a aná
             );
         }
 
+        // Salvar no cache
+        if (userId) {
+            try {
+                await withReconnect(async (prisma) => {
+                    await prisma.cache_analise_ia.upsert({
+                        where: {
+                            user_id_licitacao_id_tipo_analise: {
+                                user_id: userId,
+                                licitacao_id: licitacao.id,
+                                tipo_analise: 'match',
+                            },
+                        },
+                        update: {
+                            resultado: analise as any,
+                            dados_entrada: { licitacao, perfil } as any,
+                            atualizado_em: new Date(),
+                        },
+                        create: {
+                            user_id: userId,
+                            licitacao_id: licitacao.id,
+                            tipo_analise: 'match',
+                            resultado: analise as any,
+                            dados_entrada: { licitacao, perfil } as any,
+                        },
+                    });
+                });
+            } catch (cacheError) {
+                console.error('Erro ao salvar cache:', cacheError);
+            }
+        }
+
         return NextResponse.json({
             success: true,
             analise,
+            fromCache: false,
             modelo: 'gemini-2.5-flash',
             tokens: {
                 input: response.usage_metadata?.input_tokens || 0,
