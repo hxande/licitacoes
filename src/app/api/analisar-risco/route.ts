@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
                 if (cacheResult) {
                     return NextResponse.json({
                         success: true,
-                        analise: cacheResult.resultado as AnaliseRisco,
+                        analise: cacheResult.resultado as unknown as AnaliseRisco,
                         fromCache: true,
                         cachedAt: cacheResult.criado_em,
                     });

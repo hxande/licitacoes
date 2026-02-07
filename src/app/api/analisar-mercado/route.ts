@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
                     const stats = await obterEstatisticasHistorico();
                     return NextResponse.json({
                         success: true,
-                        analise: cacheResult.resultado as AnaliseMercado,
+                        analise: cacheResult.resultado as unknown as AnaliseMercado,
                         stats,
                         fromCache: true,
                         cachedAt: cacheResult.criado_em,
