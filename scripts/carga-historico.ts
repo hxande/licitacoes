@@ -1,13 +1,14 @@
 /**
- * Script para realizar carga completa de contratos do PNCP (2024-2025)
+ * Script para realizar carga de contratos do PNCP (2025)
  * 
  * Uso: npx tsx scripts/carga-historico.ts
  * 
  * Este script:
  * 1. Limpa a tabela de histórico existente
- * 2. Busca contratos de 2024 e 2025 em intervalos de 15 dias
- * 3. Processa todas as páginas de cada intervalo
- * 4. Salva no banco de dados
+ * 2. Busca contratos de cada mês de 2025
+ * 3. Faz sampling aleatório: máximo 10.000 por mês
+ * 4. Total: até 120.000 registros (12 meses × 10k)
+ * 5. Salva no banco de dados
  */
 
 // Carregar variáveis de ambiente
@@ -48,6 +49,8 @@ const CONFIG = {
     intervaloDias: 15,
     // Máximo de páginas por intervalo
     maxPaginasPorIntervalo: 100,
+    // Máximo de registros a manter por mês (sampling)
+    maxRegistrosPorMes: 10000,
     // Delay entre requisições (ms)
     delayRequisicao: 200,
     // Delay entre páginas (ms)
@@ -98,6 +101,23 @@ interface ContratoHistorico {
     tipo_contrato: string;
     area_atuacao: string;
     palavras_chave: string[];
+}
+
+// Função para fazer sampling aleatório
+function fazerSampling<T>(array: T[], tamanhoMaximo: number): T[] {
+    if (array.length <= tamanhoMaximo) {
+        return array;
+    }
+
+    const resultado: T[] = [];
+    const indices = new Set<number>();
+
+    while (indices.size < tamanhoMaximo) {
+        indices.add(Math.floor(Math.random() * array.length));
+    }
+
+    indices.forEach(i => resultado.push(array[i]));
+    return resultado;
 }
 
 // Extrair palavras-chave
@@ -349,11 +369,13 @@ async function main() {
         process.exit(1);
     }
 
-    // Definir período: 01/01/2024 até hoje
-    const dataInicio = new Date('2024-01-01');
-    const dataFim = new Date(); // Hoje
+    // Definir período: 2025 inteiro (janeiro a dezembro)
+    const dataInicio = new Date('2025-01-01');
+    const dataFim = new Date('2025-12-31');
 
     console.log(`📅 Período: ${dataInicio.toLocaleDateString('pt-BR')} até ${dataFim.toLocaleDateString('pt-BR')}`);
+    console.log(`🎲 Estratégia: Sampling aleatório de ${CONFIG.maxRegistrosPorMes.toLocaleString('pt-BR')} registros/mês`);
+    console.log(`📊 Total máximo esperado: ${(CONFIG.maxRegistrosPorMes * 12).toLocaleString('pt-BR')} registros\n`);
 
     // Passo 1: Limpar tabela existente
     console.log('\n🗑️ Limpando tabela de histórico existente...');
@@ -412,12 +434,16 @@ async function main() {
 
         console.log(''); // Nova linha após o progresso
 
+        // Fazer sampling aleatório para não ficar muito grande
+        const contratosSampled = fazerSampling(contratosIntervalo, CONFIG.maxRegistrosPorMes);
+
         // Salvar contratos do intervalo
-        const salvosIntervalo = await salvarContratosEmLote(contratosIntervalo);
+        const salvosIntervalo = await salvarContratosEmLote(contratosSampled);
         totalContratos += contratosIntervalo.length;
         totalSalvos += salvosIntervalo;
 
-        console.log(`   ✅ ${salvosIntervalo} novos contratos salvos`);
+        const percentualSampling = ((contratosSampled.length / contratosIntervalo.length) * 100).toFixed(1);
+        console.log(`   ✅ ${salvosIntervalo} contratos salvos (${contratosSampled.length} de ${contratosIntervalo.length} - ${percentualSampling}%)`);
 
         // Delay entre intervalos
         await new Promise(resolve => setTimeout(resolve, CONFIG.delayRequisicao));
