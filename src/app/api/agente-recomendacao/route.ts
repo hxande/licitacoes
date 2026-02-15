@@ -284,7 +284,7 @@ export async function POST(request: NextRequest) {
             new HumanMessage(userPrompt)
         ];
 
-        const response = await model.invoke(messages);
+        const response = await model.invoke(messages, { timeout: 45000 });
         const content = response.content as string;
 
         // 6. Processar resposta

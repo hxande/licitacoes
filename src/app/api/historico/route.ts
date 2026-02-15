@@ -126,6 +126,7 @@ async function buscarContratosPNCP(
         const response = await fetch(url, {
             headers: { 'Accept': 'application/json' },
             cache: 'no-store',
+            signal: AbortSignal.timeout(10000),
         });
 
         if (!response.ok) {

@@ -78,7 +78,8 @@ export async function POST(request: NextRequest) {
                     });
                 });
 
-                if (cacheResult) {
+                const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+                if (cacheResult && cacheResult.atualizado_em > new Date(Date.now() - CACHE_TTL_MS)) {
                     return NextResponse.json({
                         success: true,
                         analise: cacheResult.resultado as unknown as AnaliseMatch,
@@ -229,10 +230,10 @@ ${licitacao.objeto}
 Analise cuidadosamente todos os fatores acima e retorne APENAS o JSON com a análise.`;
 
         // Invocar modelo
-        const response = await model.invoke([
-            new SystemMessage(systemPrompt),
-            new HumanMessage(userPrompt),
-        ]);
+        const response = await model.invoke(
+            [new SystemMessage(systemPrompt), new HumanMessage(userPrompt)],
+            { timeout: 45000 },
+        );
 
         // Extrair conteúdo
         const conteudo = typeof response.content === 'string'

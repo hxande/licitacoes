@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
                     });
                 });
 
-                if (cacheResult) {
+                const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+                if (cacheResult && cacheResult.atualizado_em > new Date(Date.now() - CACHE_TTL_MS)) {
                     return NextResponse.json({
                         success: true,
                         proposta: (cacheResult.resultado as any).proposta,
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest) {
         const model = new ChatGoogleGenerativeAI({
             apiKey: apiKey,
             model: 'gemini-2.5-flash',
-            temperature: 0.7,
+            temperature: 0.3,
             maxOutputTokens: 4096,
         });
 
@@ -144,10 +145,10 @@ ${licitacao.objeto}
 Por favor, gere uma proposta comercial completa e profissional para participar desta licitação.`;
 
         // Invocar o modelo
-        const response = await model.invoke([
-            new SystemMessage(systemPrompt),
-            new HumanMessage(userPrompt),
-        ]);
+        const response = await model.invoke(
+            [new SystemMessage(systemPrompt), new HumanMessage(userPrompt)],
+            { timeout: 45000 },
+        );
 
         // Extrair o conteúdo da resposta
         const propostaTexto = typeof response.content === 'string'

@@ -70,7 +70,7 @@ export async function withReconnect<T>(fn: (prisma: PrismaClient) => Promise<T>,
             const msg = (err && (err.message || err.toString())) || '';
 
             // Detect max clients error - wait and retry
-            if (msg.includes('MaxCLientInSessionMode') || msg.includes('max clients')) {
+            if (msg.includes('MaxClient') || msg.includes('max clients')) {
                 console.warn(`[Prisma] Max clients reached (attempt ${attempt + 1}/${maxRetries + 1}). Waiting before retry...`);
                 if (attempt < maxRetries) {
                     await delay(500 * (attempt + 1)); // 500ms, 1000ms, 1500ms...

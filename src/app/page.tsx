@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Filtros } from '@/components/Filtros';
@@ -25,7 +25,10 @@ export default function Home() {
   const [modalResumoAberto, setModalResumoAberto] = useState(false);
 
   // Criar Set de IDs do pipeline para verificação rápida
-  const pipelineIds = new Set(pipelineLicitacoes.map(l => l.id));
+  const pipelineIds = useMemo(() =>
+    new Set(pipelineLicitacoes.map(l => l.id)),
+    [pipelineLicitacoes]
+  );
 
   // Redirecionar para login se não autenticado
   useEffect(() => {
@@ -47,14 +50,17 @@ export default function Home() {
     });
   }, [buscar, autenticado]);
 
-  // Calcular matches para todas as licitações
-  const licitacoesComMatch = licitacoes.map(l => ({
-    ...l,
-    match: calcularMatch(l),
-  }));
+  // Calcular matches para todas as licitações (memoized - calcularMatch is expensive)
+  const licitacoesComMatch = useMemo(() =>
+    licitacoes.map(l => ({ ...l, match: calcularMatch(l) })),
+    [licitacoes, calcularMatch]
+  );
 
   // Contar licitações com bom match
-  const licitacoesComBomMatch = licitacoesComMatch.filter(l => l.match && l.match.percentual >= 60).length;
+  const licitacoesComBomMatch = useMemo(() =>
+    licitacoesComMatch.filter(l => l.match && l.match.percentual >= 60).length,
+    [licitacoesComMatch]
+  );
 
   // Loading de autenticação
   if (carregandoAuth || !autenticado) {

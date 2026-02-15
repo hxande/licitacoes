@@ -38,7 +38,7 @@ async function buscarDetalhesContratacao(
 
         // Buscar detalhes da contratação
         const urlContratacao = `https://pncp.gov.br/api/consulta/v1/orgaos/${cnpj}/compras/${ano}/${sequencial}`;
-        const responseContratacao = await fetch(urlContratacao);
+        const responseContratacao = await fetch(urlContratacao, { signal: AbortSignal.timeout(10000) });
 
         if (responseContratacao.ok) {
             const dados = await responseContratacao.json();
@@ -59,7 +59,7 @@ INFORMAÇÕES DA CONTRATAÇÃO:
 
         // Buscar itens da contratação
         const urlItens = `https://pncp.gov.br/api/consulta/v1/orgaos/${cnpj}/compras/${ano}/${sequencial}/itens`;
-        const responseItens = await fetch(urlItens);
+        const responseItens = await fetch(urlItens, { signal: AbortSignal.timeout(10000) });
 
         if (responseItens.ok) {
             const itens = await responseItens.json();
@@ -113,7 +113,8 @@ export async function POST(request: NextRequest) {
                     });
                 });
 
-                if (cacheResult) {
+                const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+                if (cacheResult && cacheResult.atualizado_em > new Date(Date.now() - CACHE_TTL_MS)) {
                     return NextResponse.json({
                         success: true,
                         analise: cacheResult.resultado as unknown as AnaliseRisco,
@@ -226,10 +227,10 @@ ${textoParaAnalise}
 
 Retorne o JSON com a análise de riscos completa.`;
 
-        const response = await model.invoke([
-            new SystemMessage(systemPrompt),
-            new HumanMessage(userPrompt),
-        ]);
+        const response = await model.invoke(
+            [new SystemMessage(systemPrompt), new HumanMessage(userPrompt)],
+            { timeout: 45000 },
+        );
 
         const responseText =
             typeof response.content === 'string'

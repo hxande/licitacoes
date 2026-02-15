@@ -73,7 +73,8 @@ Responda APENAS com um JSON válido no seguinte formato (sem markdown, sem códi
 
         const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-        const response = await model.generateContent([
+        const response = await Promise.race([
+            model.generateContent([
             { text: prompt },
             {
                 inlineData: {
@@ -81,6 +82,10 @@ Responda APENAS com um JSON válido no seguinte formato (sem markdown, sem códi
                     data: base64,
                 },
             },
+        ]),
+            new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('LLM request timed out after 45s')), 45000)
+            ),
         ]);
 
         const result = await response.response;

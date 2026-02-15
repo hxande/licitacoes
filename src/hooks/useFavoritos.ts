@@ -42,7 +42,9 @@ export function useFavoritos() {
     function saveToStorage(_: Set<string>) { /* noop - server persists data */ }
 
     const toggleFavorito = useCallback((licitacaoId: string) => {
-        // Optimistic toggle and server update
+        // Save previous state for rollback on failure
+        const previousFavoritos = new Set(favoritos);
+        // Optimistic toggle
         setFavoritos(prev => {
             const newSet = new Set(prev);
             if (newSet.has(licitacaoId)) {
@@ -50,7 +52,6 @@ export function useFavoritos() {
             } else {
                 newSet.add(licitacaoId);
             }
-            // no-op client persistence; server holds authoritative data
             return newSet;
         });
         fetch('/api/favoritos', {
@@ -58,8 +59,10 @@ export function useFavoritos() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ licitacaoId }),
             credentials: 'include'
-        }).catch(() => { /* ignore */ });
-    }, []);
+        })
+            .then(res => { if (!res.ok) throw new Error('Failed'); })
+            .catch(() => setFavoritos(previousFavoritos));
+    }, [favoritos]);
 
     function getCurrentFavoritos(): Set<string> { return favoritos; }
 

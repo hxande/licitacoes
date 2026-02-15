@@ -67,10 +67,13 @@ Responda em JSON:
     "recomendacoes": ["rec1", "rec2", "rec3"]
 }`;
 
-        const response = await llm.invoke([
-            new SystemMessage('Você é um consultor especializado em licitações públicas. Forneça análises baseadas nos dados apresentados, evitando generalidades.'),
-            new HumanMessage(prompt),
-        ]);
+        const response = await llm.invoke(
+            [
+                new SystemMessage('Você é um consultor especializado em licitações públicas. Forneça análises baseadas nos dados apresentados, evitando generalidades.'),
+                new HumanMessage(prompt),
+            ],
+            { timeout: 45000 },
+        );
 
         const content = typeof response.content === 'string' ? response.content : '';
         const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -120,7 +123,8 @@ export async function POST(request: NextRequest) {
                     });
                 });
 
-                if (cacheResult) {
+                const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+                if (cacheResult && cacheResult.atualizado_em > new Date(Date.now() - CACHE_TTL_MS)) {
                     const stats = await obterEstatisticasHistorico();
                     return NextResponse.json({
                         success: true,

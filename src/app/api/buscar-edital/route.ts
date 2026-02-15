@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
             headers: {
                 'Accept': 'application/json',
             },
+            signal: AbortSignal.timeout(10000),
         });
 
         if (!response.ok) {

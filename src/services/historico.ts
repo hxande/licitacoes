@@ -69,39 +69,41 @@ export async function carregarDadosHistoricos(): Promise<DadosHistoricos | null>
 
 // Salvar dados históricos no arquivo
 export async function salvarDadosHistoricos(dados: DadosHistoricos): Promise<void> {
-    // Save to DB: upsert contracts
+    // Save to DB: batch upsert contracts in a single transaction
     try {
-        for (const c of dados.contratos) {
-            await withReconnect((r: any) => r.historico_contrato.upsert({
-                where: { id: c.id },
-                create: {
-                    id: c.id,
-                    cnpj_orgao: c.cnpjOrgao,
-                    orgao: c.orgao,
-                    uf: c.uf,
-                    municipio: c.municipio || null,
-                    objeto: c.objeto,
-                    fornecedor_cnpj: c.fornecedorCnpj,
-                    fornecedor_nome: c.fornecedorNome,
-                    valor_contratado: c.valorContratado,
-                    data_assinatura: c.dataAssinatura,
-                    data_publicacao: c.dataPublicacao,
-                    tipo_contrato: c.tipoContrato,
-                    area_atuacao: c.areaAtuacao,
-                    palavras_chave: c.palavrasChave,
-                },
-                update: {
-                    objeto: c.objeto,
-                    fornecedor_nome: c.fornecedorNome,
-                    valor_contratado: c.valorContratado,
-                    data_assinatura: c.dataAssinatura,
-                    data_publicacao: c.dataPublicacao,
-                    tipo_contrato: c.tipoContrato,
-                    area_atuacao: c.areaAtuacao,
-                    palavras_chave: c.palavrasChave,
-                },
-            }));
-        }
+        await withReconnect(async (prisma) => {
+            await prisma.$transaction(
+                dados.contratos.map(c => prisma.historico_contrato.upsert({
+                    where: { id: c.id },
+                    create: {
+                        id: c.id,
+                        cnpj_orgao: c.cnpjOrgao,
+                        orgao: c.orgao,
+                        uf: c.uf,
+                        municipio: c.municipio || null,
+                        objeto: c.objeto,
+                        fornecedor_cnpj: c.fornecedorCnpj,
+                        fornecedor_nome: c.fornecedorNome,
+                        valor_contratado: c.valorContratado,
+                        data_assinatura: c.dataAssinatura,
+                        data_publicacao: c.dataPublicacao,
+                        tipo_contrato: c.tipoContrato,
+                        area_atuacao: c.areaAtuacao,
+                        palavras_chave: c.palavrasChave,
+                    },
+                    update: {
+                        objeto: c.objeto,
+                        fornecedor_nome: c.fornecedorNome,
+                        valor_contratado: c.valorContratado,
+                        data_assinatura: c.dataAssinatura,
+                        data_publicacao: c.dataPublicacao,
+                        tipo_contrato: c.tipoContrato,
+                        area_atuacao: c.areaAtuacao,
+                        palavras_chave: c.palavrasChave,
+                    },
+                }))
+            );
+        });
     } catch (err) {
         // If DB unavailable, fallback to file
         await ensureDataDir();

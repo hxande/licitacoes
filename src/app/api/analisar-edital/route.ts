@@ -29,7 +29,7 @@ async function fetchPdfContent(url: string): Promise<string> {
     try {
         // Tentar buscar via proxy que converte PDF para texto
         // Alternativa: usar pdf-parse no servidor
-        const response = await fetch(url);
+        const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
         const contentType = response.headers.get('content-type') || '';
 
         if (contentType.includes('application/pdf')) {
@@ -52,7 +52,7 @@ async function buscarDetalhesContratacao(cnpj: string, ano: string, sequencial: 
     try {
         // Buscar detalhes da contratação
         const urlContratacao = `https://pncp.gov.br/api/consulta/v1/orgaos/${cnpj}/compras/${ano}/${sequencial}`;
-        const responseContratacao = await fetch(urlContratacao);
+        const responseContratacao = await fetch(urlContratacao, { signal: AbortSignal.timeout(10000) });
 
         let textoContexto = '';
 
@@ -70,7 +70,7 @@ INFORMAÇÕES DA CONTRATAÇÃO:
 
         // Buscar itens da contratação
         const urlItens = `https://pncp.gov.br/api/consulta/v1/orgaos/${cnpj}/compras/${ano}/${sequencial}/itens`;
-        const responseItens = await fetch(urlItens);
+        const responseItens = await fetch(urlItens, { signal: AbortSignal.timeout(10000) });
 
         if (responseItens.ok) {
             const itens = await responseItens.json();
@@ -84,7 +84,7 @@ INFORMAÇÕES DA CONTRATAÇÃO:
 
         // Buscar arquivos/editais
         const urlArquivos = `https://pncp.gov.br/api/consulta/v1/orgaos/${cnpj}/compras/${ano}/${sequencial}/arquivos`;
-        const responseArquivos = await fetch(urlArquivos);
+        const responseArquivos = await fetch(urlArquivos, { signal: AbortSignal.timeout(10000) });
 
         if (responseArquivos.ok) {
             const arquivos = await responseArquivos.json();
@@ -203,10 +203,10 @@ ${textoParaAnalise.substring(0, 15000)}
 
 Retorne o JSON com todos os documentos necessários para participar desta licitação.`;
 
-        const response = await model.invoke([
-            new SystemMessage(systemPrompt),
-            new HumanMessage(userPrompt),
-        ]);
+        const response = await model.invoke(
+            [new SystemMessage(systemPrompt), new HumanMessage(userPrompt)],
+            { timeout: 45000 },
+        );
 
         const responseText = typeof response.content === 'string'
             ? response.content
