@@ -17,10 +17,11 @@ model usuario {
   email_verificado  Boolean   @default(false)
   token_verificacao String?
   token_expira_em   DateTime?
-  token_reset_senha String?
-  reset_expira_em   DateTime?
-  criado_em         DateTime  @default(now())
-  atualizado_em     DateTime  @default(now())
+  token_reset_senha   String?
+  reset_expira_em     DateTime?
+  notificacoes_email  Boolean   @default(true)
+  criado_em           DateTime  @default(now())
+  atualizado_em       DateTime  @default(now())
 }
 
 model sessao {
@@ -98,6 +99,17 @@ model checklist {
   documentos     Json     @default("[]")
   criado_em      DateTime @default(now())
   atualizado_em  DateTime @default(now())
+}
+
+model log_notificacao {
+  id         BigInt   @id @default(autoincrement())
+  user_id    BigInt
+  tipo       String   // 'resumo_diario'
+  status     String   // 'enviado' | 'erro' | 'sem_conteudo'
+  detalhes   Json?
+  criado_em  DateTime @default(now())
+
+  @@index([user_id, tipo, criado_em])
 }
 
 // Cache de análises de IA para economizar tokens

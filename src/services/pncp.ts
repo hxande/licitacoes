@@ -514,7 +514,7 @@ function extractAreaAtuacao(objeto: string): string {
 const PNCP_MAX_PAGE_SIZE = 50;
 
 // Função auxiliar para fetch com retry e timeout
-async function fetchWithRetry(
+export async function fetchWithRetry(
     url: string,
     options: RequestInit,
     maxRetries: number = 2,
@@ -546,6 +546,23 @@ async function fetchWithRetry(
     }
 
     throw lastError || new Error('Fetch failed after retries');
+}
+
+export async function buscarLicitacaoPorId(
+    cnpj: string,
+    anoCompra: string,
+    sequencialCompra: string
+): Promise<PNCPContratacao | null> {
+    try {
+        const url = `${PNCP_BASE_URL}/contratacoes/${cnpj}/${anoCompra}/${sequencialCompra}`;
+        const response = await fetchWithRetry(url, {
+            headers: { 'Accept': 'application/json' },
+        });
+        if (!response.ok) return null;
+        return await response.json();
+    } catch {
+        return null;
+    }
 }
 
 export async function buscarLicitacoesPNCP(params: {
