@@ -47,6 +47,7 @@ export default function Home() {
     buscar({
       dataInicio: startDate.toISOString().split('T')[0],
       dataFim: today.toISOString().split('T')[0],
+      fontes: ['PNCP', 'SESI', 'SENAI'],
     });
   }, [buscar, autenticado]);
 
