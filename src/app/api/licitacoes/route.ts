@@ -26,7 +26,6 @@ export async function GET(request: NextRequest) {
                 .filter(f => FONTES_VALIDAS.includes(f))
             : ['PNCP'];
 
-        console.log(`[API/licitacoes] fontes="${fontesParam}" → ${JSON.stringify(fontesSolicitadas)} | uf=${ufSigla} | ${dataInicial}→${dataFinal}`);
 
         const incluirPNCP = fontesSolicitadas.includes('PNCP');
         const entidadesSistemaS = fontesSolicitadas.filter(
@@ -68,8 +67,6 @@ export async function GET(request: NextRequest) {
         } else if (resultadoPNCP.status === 'rejected') {
             console.error('[API] Falha ao buscar PNCP:', resultadoPNCP.reason);
         }
-
-        console.log(`[API/licitacoes] PNCP: ${resultadoPNCP.status === 'fulfilled' ? (resultadoPNCP.value?.data?.length ?? 0) : 'ERRO'} | SistemaS: ${resultadoSistemaS.status === 'fulfilled' ? resultadoSistemaS.value.length : 'ERRO'}`);
 
         // Incorpora resultados do Sistema S (SESI/SENAI)
         if (resultadoSistemaS.status === 'fulfilled') {

@@ -217,24 +217,18 @@ export async function buscarLicitacoesSistemaS(params: {
         }
     }
 
-    const inicio = Date.now();
     const resultados = await Promise.allSettled(promises);
-    const elapsed = Date.now() - inicio;
 
     const todas: Licitacao[] = [];
-    let erros = 0;
     for (const r of resultados) {
         if (r.status === 'fulfilled') {
             todas.push(...r.value);
-        } else {
-            erros++;
         }
     }
 
-    console.log(
-        `[SistemaS] ${todas.length} itens de ${promises.length} chamadas em ${elapsed}ms` +
-        (erros > 0 ? ` (${erros} rejeitadas)` : ''),
-    );
-
-    return todas;
+    // Remove licitações encerradas ou concluídas — sem interesse para o usuário
+    return todas.filter(l => {
+        const s = l.situacao.toLowerCase();
+        return !s.includes('encerrad') && !s.includes('concluíd') && !s.includes('concluido');
+    });
 }
