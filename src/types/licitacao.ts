@@ -12,7 +12,7 @@ export interface Licitacao {
     valorEstimado?: number;
     situacao: string;
     linkEdital?: string;
-    fonte: 'PNCP' | 'COMPRASNET';
+    fonte: 'PNCP' | 'COMPRASNET' | 'SESI' | 'SENAI';
     areaAtuacao: string;
     categorias?: string[];
 }
@@ -26,6 +26,7 @@ export interface FiltrosLicitacao {
     dataFim?: string;
     valorMinimo?: number;
     valorMaximo?: number;
+    fontes?: string[];
 }
 
 export interface PNCPContratacao {

@@ -28,7 +28,7 @@ export function transformPNCPToLicitacao(item: PNCPContratacao): Licitacao {
 }
 
 // Extrai categorias de TI para exibir tags nos cards
-function extractCategoriasTI(objeto: string): string[] {
+export function extractCategoriasTI(objeto: string): string[] {
     const categorias: string[] = [];
     const objetoLower = objeto.toLowerCase();
 
@@ -476,7 +476,7 @@ const CATEGORIAS_CONFIG: Record<string, CategoriaConfig> = {
 };
 
 // Extrai a área de atuação principal da licitação usando sistema de scoring
-function extractAreaAtuacao(objeto: string): string {
+export function extractAreaAtuacao(objeto: string): string {
     const objetoLower = objeto.toLowerCase();
 
     let melhorCategoria = 'Outros';

@@ -17,7 +17,18 @@ export function Filtros({ onBuscar, loading }: FiltrosProps) {
         area: '',
         dataInicio: getDefaultDataInicio(),
         dataFim: getDefaultDataFim(),
+        fontes: ['PNCP', 'SESI', 'SENAI'],
     });
+
+    const toggleFonte = (fonte: string) => {
+        const atuais = filtros.fontes ?? ['PNCP', 'SESI', 'SENAI'];
+        const novas = atuais.includes(fonte)
+            ? atuais.filter(f => f !== fonte)
+            : [...atuais, fonte];
+        // Mantém ao menos uma fonte selecionada
+        if (novas.length === 0) return;
+        setFiltros({ ...filtros, fontes: novas });
+    };
     const [mostrarFiltrosAvancados, setMostrarFiltrosAvancados] = useState(false);
 
     function getDefaultDataInicio(): string {
@@ -45,6 +56,7 @@ export function Filtros({ onBuscar, loading }: FiltrosProps) {
             area: '',
             dataInicio: getDefaultDataInicio(),
             dataFim: getDefaultDataFim(),
+            fontes: ['PNCP', 'SESI', 'SENAI'],
         };
         setFiltros(novosFiltros);
     };
@@ -91,88 +103,118 @@ export function Filtros({ onBuscar, loading }: FiltrosProps) {
             </button>
 
             {mostrarFiltrosAvancados && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t border-gray-100">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            Estado (UF)
-                        </label>
-                        <select
-                            value={filtros.uf}
-                            onChange={(e) => setFiltros({ ...filtros, uf: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                        >
-                            <option value="">Todos os estados</option>
-                            {UFS.map((uf) => (
-                                <option key={uf} value={uf}>
-                                    {uf}
-                                </option>
-                            ))}
-                        </select>
+                <div className="pt-4 border-t border-gray-100 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                Estado (UF)
+                            </label>
+                            <select
+                                value={filtros.uf}
+                                onChange={(e) => setFiltros({ ...filtros, uf: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                            >
+                                <option value="">Todos os estados</option>
+                                {UFS.map((uf) => (
+                                    <option key={uf} value={uf}>
+                                        {uf}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                                <DollarSign className="w-4 h-4" />
+                                Modalidade
+                            </label>
+                            <select
+                                value={filtros.modalidade}
+                                onChange={(e) => setFiltros({ ...filtros, modalidade: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                            >
+                                <option value="">Todas as modalidades</option>
+                                {Object.entries(MODALIDADES).map(([id, nome]) => (
+                                    <option key={id} value={id}>
+                                        {nome}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                                <Tag className="w-4 h-4" />
+                                Área de Atuação
+                            </label>
+                            <select
+                                value={filtros.area}
+                                onChange={(e) => setFiltros({ ...filtros, area: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                            >
+                                <option value="">Todas as áreas</option>
+                                {AREAS_ATUACAO.map((area) => (
+                                    <option key={area} value={area}>
+                                        {area}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                Publicação - De
+                            </label>
+                            <input
+                                type="date"
+                                value={filtros.dataInicio}
+                                onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                Publicação - Até
+                            </label>
+                            <input
+                                type="date"
+                                value={filtros.dataFim}
+                                onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                            />
+                        </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />
-                            Modalidade
-                        </label>
-                        <select
-                            value={filtros.modalidade}
-                            onChange={(e) => setFiltros({ ...filtros, modalidade: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                        >
-                            <option value="">Todas as modalidades</option>
-                            {Object.entries(MODALIDADES).map(([id, nome]) => (
-                                <option key={id} value={id}>
-                                    {nome}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                            <Tag className="w-4 h-4" />
-                            Área de Atuação
-                        </label>
-                        <select
-                            value={filtros.area}
-                            onChange={(e) => setFiltros({ ...filtros, area: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                        >
-                            <option value="">Todas as áreas</option>
-                            {AREAS_ATUACAO.map((area) => (
-                                <option key={area} value={area}>
-                                    {area}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            Publicação - De
-                        </label>
-                        <input
-                            type="date"
-                            value={filtros.dataInicio}
-                            onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            Publicação - Até
-                        </label>
-                        <input
-                            type="date"
-                            value={filtros.dataFim}
-                            onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                        />
+                    {/* Filtro de fontes */}
+                    <div className="flex items-center gap-4 flex-wrap">
+                        <span className="text-sm font-medium text-gray-700">Fontes:</span>
+                        {[
+                            { id: 'PNCP', label: 'PNCP', cor: 'blue' },
+                            { id: 'SESI', label: 'SESI', cor: 'amber' },
+                            { id: 'SENAI', label: 'SENAI', cor: 'orange' },
+                        ].map(({ id, label, cor }) => {
+                            const ativo = (filtros.fontes ?? ['PNCP', 'SESI', 'SENAI']).includes(id);
+                            return (
+                                <label key={id} className="flex items-center gap-1.5 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={ativo}
+                                        onChange={() => toggleFonte(id)}
+                                        className="rounded"
+                                    />
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${cor === 'blue' ? 'bg-blue-100 text-blue-700' :
+                                            cor === 'amber' ? 'bg-amber-100 text-amber-700' :
+                                                'bg-orange-100 text-orange-700'
+                                        }`}>
+                                        {label}
+                                    </span>
+                                </label>
+                            );
+                        })}
                     </div>
                 </div>
             )}

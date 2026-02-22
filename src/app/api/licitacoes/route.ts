@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buscarLicitacoesPNCP, transformPNCPToLicitacao } from '@/services/pncp';
+import { buscarLicitacoesSistemaS } from '@/services/sistema-s';
 import { Licitacao } from '@/types/licitacao';
+
+const FONTES_VALIDAS = ['PNCP', 'SESI', 'SENAI'] as const;
+type FonteValida = typeof FONTES_VALIDAS[number];
 
 export async function GET(request: NextRequest) {
     try {
@@ -15,32 +19,75 @@ export async function GET(request: NextRequest) {
         const tamanhoPagina = parseInt(searchParams.get('tamanhoPagina') || '20');
         const termoBusca = searchParams.get('termo')?.toLowerCase().trim();
 
-        const resultado = await buscarLicitacoesPNCP({
-            dataInicial,
-            dataFinal,
-            ufSigla,
-            codigoModalidadeContratacao: modalidade ? parseInt(modalidade) : undefined,
-            pagina: 1, // Sempre buscar página 1 da API, paginação será feita localmente
-            tamanhoPagina: 50, // Limite máximo da API do PNCP
-        });
+        // Fontes solicitadas — quando não informado, usa apenas PNCP (retrocompatibilidade)
+        const fontesParam = searchParams.get('fontes');
+        const fontesSolicitadas: FonteValida[] = fontesParam
+            ? (fontesParam.split(',').map(f => f.trim().toUpperCase()) as FonteValida[])
+                .filter(f => FONTES_VALIDAS.includes(f))
+            : ['PNCP'];
 
-        let licitacoes: Licitacao[] = resultado.data.map(transformPNCPToLicitacao);
+        const incluirPNCP = fontesSolicitadas.includes('PNCP');
+        const entidadesSistemaS = fontesSolicitadas.filter(
+            f => f === 'SESI' || f === 'SENAI',
+        ) as Array<'SESI' | 'SENAI'>;
+        const incluirSistemaS = entidadesSistemaS.length > 0;
 
-        // Aplicar filtro por UF (a API do PNCP nem sempre filtra corretamente)
+        // Busca paralela com fallback independente por fonte
+        const [resultadoPNCP, resultadoSistemaS] = await Promise.allSettled([
+            incluirPNCP
+                ? buscarLicitacoesPNCP({
+                    dataInicial,
+                    dataFinal,
+                    ufSigla,
+                    codigoModalidadeContratacao: modalidade ? parseInt(modalidade) : undefined,
+                    pagina: 1,
+                    tamanhoPagina: 50,
+                })
+                : Promise.resolve(null),
+
+            incluirSistemaS
+                ? buscarLicitacoesSistemaS({
+                    dataInicial,
+                    dataFinal,
+                    ufSigla,
+                    entidades: entidadesSistemaS,
+                })
+                : Promise.resolve([]),
+        ]);
+
+        let licitacoes: Licitacao[] = [];
+        let totalRegistrosPNCP = 0;
+
+        // Incorpora resultados do PNCP
+        if (resultadoPNCP.status === 'fulfilled' && resultadoPNCP.value) {
+            const pncp = resultadoPNCP.value;
+            totalRegistrosPNCP = pncp.totalRegistros;
+            licitacoes.push(...pncp.data.map(transformPNCPToLicitacao));
+        } else if (resultadoPNCP.status === 'rejected') {
+            console.error('[API] Falha ao buscar PNCP:', resultadoPNCP.reason);
+        }
+
+        // Incorpora resultados do Sistema S (SESI/SENAI)
+        if (resultadoSistemaS.status === 'fulfilled') {
+            licitacoes.push(...resultadoSistemaS.value);
+        } else {
+            console.error('[API] Falha ao buscar Sistema S:', resultadoSistemaS.reason);
+        }
+
+        // Filtro por UF (PNCP às vezes não filtra corretamente; Sistema S também)
         if (ufSigla) {
             licitacoes = licitacoes.filter(l => l.uf === ufSigla);
         }
 
-        // Aplicar filtro por área de atuação
+        // Filtro por área de atuação
         if (area) {
             licitacoes = licitacoes.filter(l => l.areaAtuacao === area);
         }
 
-        // Aplicar filtro por termo de busca (busca em múltiplos campos)
+        // Filtro por termo de busca (todos os campos de texto)
         if (termoBusca) {
             const termos = termoBusca.split(/\s+/).filter(t => t.length > 1);
             licitacoes = licitacoes.filter(l => {
-                // Buscar apenas nos campos de texto, não nas categorias automáticas
                 const textoCompleto = [
                     l.objeto,
                     l.orgao,
@@ -48,37 +95,34 @@ export async function GET(request: NextRequest) {
                     l.uf,
                     l.situacao,
                 ].join(' ').toLowerCase();
-
-                // Todos os termos devem estar presentes
                 return termos.every(termo => textoCompleto.includes(termo));
             });
         }
 
-        // Ordenar por data de publicação (mais recentes primeiro)
+        // Ordena por data de publicação (mais recente primeiro)
         licitacoes.sort((a, b) => {
-            const dataA = new Date(a.dataPublicacao).getTime();
-            const dataB = new Date(b.dataPublicacao).getTime();
+            const dataA = new Date(a.dataPublicacao || '').getTime() || 0;
+            const dataB = new Date(b.dataPublicacao || '').getTime() || 0;
             return dataB - dataA;
         });
 
-        // Calcular paginação local
+        // Paginação local
         const totalFiltrado = licitacoes.length;
         const totalPaginas = Math.ceil(totalFiltrado / tamanhoPagina);
         const inicio = (pagina - 1) * tamanhoPagina;
-        const fim = inicio + tamanhoPagina;
-        const licitacoesPaginadas = licitacoes.slice(inicio, fim);
+        const licitacoesPaginadas = licitacoes.slice(inicio, inicio + tamanhoPagina);
 
         return NextResponse.json({
             success: true,
             data: licitacoesPaginadas,
             meta: {
                 paginaAtual: pagina,
-                totalPaginas: totalPaginas,
-                totalRegistros: resultado.totalRegistros,
-                totalFiltrado: totalFiltrado,
+                totalPaginas,
+                totalRegistros: totalRegistrosPNCP + (resultadoSistemaS.status === 'fulfilled' ? resultadoSistemaS.value.length : 0),
+                totalFiltrado,
                 temMaisPaginas: pagina < totalPaginas,
                 itensPorPagina: tamanhoPagina,
-            }
+            },
         });
     } catch (error) {
         console.error('Erro ao buscar licitações:', error);
@@ -94,9 +138,9 @@ export async function GET(request: NextRequest) {
                     totalFiltrado: 0,
                     temMaisPaginas: false,
                     itensPorPagina: 20,
-                }
+                },
             },
-            { status: 500 }
+            { status: 500 },
         );
     }
 }

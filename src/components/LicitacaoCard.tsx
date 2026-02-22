@@ -129,7 +129,10 @@ export function LicitacaoCard({
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getSituacaoColor(licitacao.situacao)}`}>
                             {licitacao.situacao}
                         </span>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${licitacao.fonte === 'SESI' ? 'bg-amber-100 text-amber-700' :
+                                licitacao.fonte === 'SENAI' ? 'bg-orange-100 text-orange-700' :
+                                    'bg-blue-50 text-blue-600'
+                            }`}>
                             {licitacao.fonte}
                         </span>
                         <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
@@ -255,15 +258,30 @@ export function LicitacaoCard({
                     <BarChart3 className="w-4 h-4" />
                     Mercado
                 </button>
-                <a
-                    href={`https://pncp.gov.br/app/editais/${licitacao.cnpjOrgao}/${licitacao.id.split('-').slice(1).join('/')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition text-sm font-medium"
-                >
-                    <ExternalLink className="w-4 h-4" />
-                    PNCP
-                </a>
+                {licitacao.fonte === 'PNCP' ? (
+                    <a
+                        href={`https://pncp.gov.br/app/editais/${licitacao.cnpjOrgao}/${licitacao.id.split('-').slice(1).join('/')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition text-sm font-medium"
+                    >
+                        <ExternalLink className="w-4 h-4" />
+                        PNCP
+                    </a>
+                ) : licitacao.linkEdital ? (
+                    <a
+                        href={licitacao.linkEdital}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg hover:opacity-80 transition text-sm font-medium border ${licitacao.fonte === 'SESI'
+                                ? 'border-amber-600 text-amber-700 hover:bg-amber-50'
+                                : 'border-orange-600 text-orange-700 hover:bg-orange-50'
+                            }`}
+                    >
+                        <ExternalLink className="w-4 h-4" />
+                        Portal {licitacao.fonte}
+                    </a>
+                ) : null}
             </div>
 
             {modalAnaliseAberta && (
