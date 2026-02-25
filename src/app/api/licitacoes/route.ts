@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buscarLicitacoesPNCP, transformPNCPToLicitacao } from '@/services/pncp';
 import { buscarLicitacoesSistemaS } from '@/services/sistema-s';
+import { buscarLicitacoesSENAC } from '@/services/senac';
 import { Licitacao } from '@/types/licitacao';
 
-const FONTES_VALIDAS = ['PNCP', 'SESI', 'SENAI'] as const;
+const FONTES_VALIDAS = ['PNCP', 'SESI', 'SENAI', 'SENAC'] as const;
 type FonteValida = typeof FONTES_VALIDAS[number];
 
 export async function GET(request: NextRequest) {
@@ -32,9 +33,10 @@ export async function GET(request: NextRequest) {
             f => f === 'SESI' || f === 'SENAI',
         ) as Array<'SESI' | 'SENAI'>;
         const incluirSistemaS = entidadesSistemaS.length > 0;
+        const incluirSENAC = fontesSolicitadas.includes('SENAC');
 
         // Busca paralela com fallback independente por fonte
-        const [resultadoPNCP, resultadoSistemaS] = await Promise.allSettled([
+        const [resultadoPNCP, resultadoSistemaS, resultadoSENAC] = await Promise.allSettled([
             incluirPNCP
                 ? buscarLicitacoesPNCP({
                     dataInicial,
@@ -53,6 +55,10 @@ export async function GET(request: NextRequest) {
                     ufSigla,
                     entidades: entidadesSistemaS,
                 })
+                : Promise.resolve([]),
+
+            incluirSENAC
+                ? buscarLicitacoesSENAC({ ufSigla })
                 : Promise.resolve([]),
         ]);
 
@@ -73,6 +79,13 @@ export async function GET(request: NextRequest) {
             licitacoes.push(...resultadoSistemaS.value);
         } else {
             console.error('[API] Falha ao buscar Sistema S:', resultadoSistemaS.reason);
+        }
+
+        // Incorpora resultados do SENAC
+        if (resultadoSENAC.status === 'fulfilled') {
+            licitacoes.push(...resultadoSENAC.value);
+        } else {
+            console.error('[API] Falha ao buscar SENAC:', resultadoSENAC.reason);
         }
 
         // Filtro por UF (PNCP às vezes não filtra corretamente; Sistema S também)
@@ -119,7 +132,9 @@ export async function GET(request: NextRequest) {
             meta: {
                 paginaAtual: pagina,
                 totalPaginas,
-                totalRegistros: totalRegistrosPNCP + (resultadoSistemaS.status === 'fulfilled' ? resultadoSistemaS.value.length : 0),
+                totalRegistros: totalRegistrosPNCP
+                    + (resultadoSistemaS.status === 'fulfilled' ? resultadoSistemaS.value.length : 0)
+                    + (resultadoSENAC.status === 'fulfilled' ? resultadoSENAC.value.length : 0),
                 totalFiltrado,
                 temMaisPaginas: pagina < totalPaginas,
                 itensPorPagina: tamanhoPagina,

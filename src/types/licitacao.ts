@@ -12,7 +12,7 @@ export interface Licitacao {
     valorEstimado?: number;
     situacao: string;
     linkEdital?: string;
-    fonte: 'PNCP' | 'COMPRASNET' | 'SESI' | 'SENAI';
+    fonte: 'PNCP' | 'COMPRASNET' | 'SESI' | 'SENAI' | 'SENAC';
     areaAtuacao: string;
     categorias?: string[];
 }

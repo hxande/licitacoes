@@ -10,16 +10,23 @@ interface FiltrosProps {
 }
 
 const FONTES = [
-    { id: 'PNCP',  label: 'PNCP',  desc: 'Gov. Federal', ativo: 'bg-blue-600 text-white',   inativo: 'bg-white text-blue-600 border border-blue-300 hover:bg-blue-50' },
-    { id: 'SESI',  label: 'SESI',  desc: 'Indústria',    ativo: 'bg-amber-500 text-white',   inativo: 'bg-white text-amber-600 border border-amber-300 hover:bg-amber-50' },
-    { id: 'SENAI', label: 'SENAI', desc: 'Indústria',    ativo: 'bg-orange-500 text-white',  inativo: 'bg-white text-orange-600 border border-orange-300 hover:bg-orange-50' },
+    { id: 'PNCP', label: 'PNCP', desc: 'Gov. Federal', ativo: 'bg-blue-600 text-white', inativo: 'bg-white text-blue-600 border border-blue-300 hover:bg-blue-50' },
+    { id: 'SESI', label: 'SESI', desc: 'Indústria', ativo: 'bg-amber-500 text-white', inativo: 'bg-white text-amber-600 border border-amber-300 hover:bg-amber-50' },
+    { id: 'SENAI', label: 'SENAI', desc: 'Indústria', ativo: 'bg-orange-500 text-white', inativo: 'bg-white text-orange-600 border border-orange-300 hover:bg-orange-50' },
+    { id: 'SENAC', label: 'SENAC', desc: 'Comércio', ativo: 'bg-teal-600 text-white', inativo: 'bg-white text-teal-600 border border-teal-300 hover:bg-teal-50' },
 ];
 
 const PERIODOS = [
-    { id: '7d',  label: '7 dias',  dias: 7 },
+    { id: '7d', label: '7 dias', dias: 7 },
     { id: '15d', label: '15 dias', dias: 15 },
     { id: '30d', label: '30 dias', dias: 30 },
     { id: '60d', label: '60 dias', dias: 60 },
+];
+
+const TIPOS_RAPIDOS = [
+    { id: '', label: 'Todos' },
+    { id: '6', label: 'Pregão' },
+    { id: '8', label: 'Dispensa', destaque: true },
 ];
 
 const STORAGE_KEY = 'licitaly_filtros_v1';
@@ -50,7 +57,7 @@ function calcularDatas(periodoId: string): { dataInicio: string; dataFim: string
 function estadoPadrao(): EstadoFiltros {
     const { dataInicio, dataFim } = calcularDatas('15d');
     return {
-        fontes: ['PNCP', 'SESI', 'SENAI'],
+        fontes: ['PNCP', 'SESI', 'SENAI', 'SENAC'],
         periodoId: '15d',
         dataInicio,
         dataFim,
@@ -124,7 +131,7 @@ export function Filtros({ onBuscar, loading }: FiltrosProps) {
         setEstado(novo);
     };
 
-    const temFiltrosAvancados = !!(estado.uf || estado.modalidade || estado.area || estado.periodoId === 'custom');
+    const temFiltrosAvancados = !!(estado.uf || estado.area || estado.periodoId === 'custom');
 
     return (
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
@@ -164,6 +171,32 @@ export function Filtros({ onBuscar, loading }: FiltrosProps) {
                                 className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${ativo ? 'bg-gray-800 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}
                             >
                                 {p.label}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Separador */}
+                <div className="h-4 w-px bg-gray-200 hidden sm:block" />
+
+                {/* Tipo */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide mr-0.5">Tipo</span>
+                    {TIPOS_RAPIDOS.map(t => {
+                        const ativo = estado.modalidade === t.id;
+                        return (
+                            <button
+                                key={t.id}
+                                type="button"
+                                onClick={() => setEstado(prev => ({ ...prev, modalidade: t.id }))}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${ativo
+                                    ? t.destaque ? 'bg-emerald-500 text-white' : 'bg-gray-800 text-white'
+                                    : t.destaque
+                                        ? 'bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-50'
+                                        : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
+                                    }`}
+                            >
+                                {t.id === '8' && ativo ? '⚡ ' : ''}{t.label}
                             </button>
                         );
                     })}

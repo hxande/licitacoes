@@ -130,11 +130,18 @@ export function LicitacaoCard({
                             {licitacao.situacao}
                         </span>
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${licitacao.fonte === 'SESI' ? 'bg-amber-100 text-amber-700' :
-                                licitacao.fonte === 'SENAI' ? 'bg-orange-100 text-orange-700' :
+                            licitacao.fonte === 'SENAI' ? 'bg-orange-100 text-orange-700' :
+                                licitacao.fonte === 'SENAC' ? 'bg-teal-100 text-teal-700' :
                                     'bg-blue-50 text-blue-600'
                             }`}>
                             {licitacao.fonte}
                         </span>
+                        {licitacao.modalidade.toLowerCase().includes('dispensa') && (
+                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 flex items-center gap-1">
+                                <Zap className="w-3 h-3" />
+                                Dispensa
+                            </span>
+                        )}
                         <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                             {licitacao.areaAtuacao}
                         </span>
@@ -274,7 +281,9 @@ export function LicitacaoCard({
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg hover:opacity-80 transition text-sm font-medium border ${licitacao.fonte === 'SESI'
-                                ? 'border-amber-600 text-amber-700 hover:bg-amber-50'
+                            ? 'border-amber-600 text-amber-700 hover:bg-amber-50'
+                            : licitacao.fonte === 'SENAC'
+                                ? 'border-teal-600 text-teal-700 hover:bg-teal-50'
                                 : 'border-orange-600 text-orange-700 hover:bg-orange-50'
                             }`}
                     >
