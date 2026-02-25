@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Filter, MapPin, Calendar, DollarSign, X, Tag } from 'lucide-react';
+import { Search, Filter, MapPin, DollarSign, X, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import { FiltrosLicitacao, UFS, MODALIDADES, AREAS_ATUACAO } from '@/types/licitacao';
 
 interface FiltrosProps {
@@ -9,226 +9,282 @@ interface FiltrosProps {
     loading: boolean;
 }
 
-export function Filtros({ onBuscar, loading }: FiltrosProps) {
-    const [filtros, setFiltros] = useState<FiltrosLicitacao>({
+const FONTES = [
+    { id: 'PNCP',  label: 'PNCP',  desc: 'Gov. Federal', ativo: 'bg-blue-600 text-white',   inativo: 'bg-white text-blue-600 border border-blue-300 hover:bg-blue-50' },
+    { id: 'SESI',  label: 'SESI',  desc: 'Indústria',    ativo: 'bg-amber-500 text-white',   inativo: 'bg-white text-amber-600 border border-amber-300 hover:bg-amber-50' },
+    { id: 'SENAI', label: 'SENAI', desc: 'Indústria',    ativo: 'bg-orange-500 text-white',  inativo: 'bg-white text-orange-600 border border-orange-300 hover:bg-orange-50' },
+];
+
+const PERIODOS = [
+    { id: '7d',  label: '7 dias',  dias: 7 },
+    { id: '15d', label: '15 dias', dias: 15 },
+    { id: '30d', label: '30 dias', dias: 30 },
+    { id: '60d', label: '60 dias', dias: 60 },
+];
+
+const STORAGE_KEY = 'licitaly_filtros_v1';
+
+interface EstadoFiltros {
+    fontes: string[];
+    periodoId: string;
+    dataInicio: string;
+    dataFim: string;
+    termo: string;
+    uf: string;
+    modalidade: string;
+    area: string;
+}
+
+function calcularDatas(periodoId: string): { dataInicio: string; dataFim: string } {
+    const hoje = new Date();
+    const p = PERIODOS.find(p => p.id === periodoId);
+    const dias = p?.dias ?? 15;
+    const inicio = new Date(hoje);
+    inicio.setDate(hoje.getDate() - dias);
+    return {
+        dataInicio: inicio.toISOString().split('T')[0],
+        dataFim: hoje.toISOString().split('T')[0],
+    };
+}
+
+function estadoPadrao(): EstadoFiltros {
+    const { dataInicio, dataFim } = calcularDatas('15d');
+    return {
+        fontes: ['PNCP', 'SESI', 'SENAI'],
+        periodoId: '15d',
+        dataInicio,
+        dataFim,
         termo: '',
         uf: '',
         modalidade: '',
         area: '',
-        dataInicio: getDefaultDataInicio(),
-        dataFim: getDefaultDataFim(),
-        fontes: ['PNCP', 'SESI', 'SENAI'],
-    });
-
-    const toggleFonte = (fonte: string) => {
-        const atuais = filtros.fontes ?? ['PNCP', 'SESI', 'SENAI'];
-        const novas = atuais.includes(fonte)
-            ? atuais.filter(f => f !== fonte)
-            : [...atuais, fonte];
-        // Mantém ao menos uma fonte selecionada
-        if (novas.length === 0) return;
-        setFiltros({ ...filtros, fontes: novas });
     };
-    const [mostrarFiltrosAvancados, setMostrarFiltrosAvancados] = useState(false);
+}
 
-    function getDefaultDataInicio(): string {
-        const date = new Date();
-        date.setDate(date.getDate() - 15);
-        return date.toISOString().split('T')[0];
+function lerStorage(): EstadoFiltros {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return estadoPadrao();
+        const salvo = JSON.parse(raw) as Partial<EstadoFiltros>;
+        const padrao = estadoPadrao();
+        // Recalcular datas se o período não for custom
+        const periodoId = salvo.periodoId ?? '15d';
+        const datas = periodoId !== 'custom'
+            ? calcularDatas(periodoId)
+            : { dataInicio: salvo.dataInicio ?? padrao.dataInicio, dataFim: salvo.dataFim ?? padrao.dataFim };
+        return { ...padrao, ...salvo, ...datas, periodoId };
+    } catch {
+        return estadoPadrao();
     }
+}
 
-    function getDefaultDataFim(): string {
-        const date = new Date();
-        date.setDate(date.getDate() + 30);
-        return date.toISOString().split('T')[0];
+function salvarStorage(estado: EstadoFiltros) {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
+    } catch {
+        // silently ignore
     }
+}
+
+export function Filtros({ onBuscar, loading }: FiltrosProps) {
+    const [estado, setEstado] = useState<EstadoFiltros>(() =>
+        typeof window !== 'undefined' ? lerStorage() : estadoPadrao()
+    );
+    const [avancado, setAvancado] = useState(false);
+
+    const toggleFonte = (id: string) => {
+        const novas = estado.fontes.includes(id)
+            ? estado.fontes.filter(f => f !== id)
+            : [...estado.fontes, id];
+        if (novas.length === 0) return;
+        setEstado(prev => ({ ...prev, fontes: novas }));
+    };
+
+    const selecionarPeriodo = (periodoId: string) => {
+        const datas = calcularDatas(periodoId);
+        setEstado(prev => ({ ...prev, periodoId, ...datas }));
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onBuscar(filtros);
+        salvarStorage(estado);
+        onBuscar({
+            termo: estado.termo || undefined,
+            uf: estado.uf || undefined,
+            modalidade: estado.modalidade || undefined,
+            area: estado.area || undefined,
+            dataInicio: estado.dataInicio,
+            dataFim: estado.dataFim,
+            fontes: estado.fontes,
+        });
     };
 
-    const limparFiltros = () => {
-        const novosFiltros = {
-            termo: '',
-            uf: '',
-            modalidade: '',
-            area: '',
-            dataInicio: getDefaultDataInicio(),
-            dataFim: getDefaultDataFim(),
-            fontes: ['PNCP', 'SESI', 'SENAI'],
-        };
-        setFiltros(novosFiltros);
+    const limpar = () => {
+        const novo = estadoPadrao();
+        setEstado(novo);
     };
+
+    const temFiltrosAvancados = !!(estado.uf || estado.modalidade || estado.area || estado.periodoId === 'custom');
 
     return (
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <div className="flex gap-4 mb-4">
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+            {/* Linha 1: Fontes + Período */}
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+                {/* Fontes */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide mr-0.5">Fontes</span>
+                    {FONTES.map(f => {
+                        const ativo = estado.fontes.includes(f.id);
+                        return (
+                            <button
+                                key={f.id}
+                                type="button"
+                                onClick={() => toggleFonte(f.id)}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${ativo ? f.ativo : f.inativo}`}
+                            >
+                                {ativo ? '✓ ' : ''}{f.label}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Separador */}
+                <div className="h-4 w-px bg-gray-200 hidden sm:block" />
+
+                {/* Período */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide mr-0.5">Período</span>
+                    {PERIODOS.map(p => {
+                        const ativo = estado.periodoId === p.id;
+                        return (
+                            <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => selecionarPeriodo(p.id)}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${ativo ? 'bg-gray-800 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}
+                            >
+                                {p.label}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Linha 2: Campo de busca + botão */}
+            <div className="flex gap-3">
                 <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <input
                         type="text"
-                        placeholder="Buscar por objeto, órgão, município... (ex: software, sistema, desenvolvimento)"
-                        value={filtros.termo}
-                        onChange={(e) => setFiltros({ ...filtros, termo: e.target.value })}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 placeholder-gray-500"
+                        placeholder="Buscar por objeto, órgão, município... (opcional)"
+                        value={estado.termo}
+                        onChange={e => setEstado(prev => ({ ...prev, termo: e.target.value }))}
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 placeholder-gray-400 text-sm"
                     />
                 </div>
                 <button
                     type="submit"
-                    disabled={loading}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
+                    disabled={loading || estado.fontes.length === 0}
+                    className="px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium text-sm whitespace-nowrap shadow-sm"
                 >
                     {loading ? (
-                        <>
-                            <span className="animate-spin">⏳</span>
-                            Buscando...
-                        </>
+                        <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" /> Buscando...</>
                     ) : (
-                        <>
-                            <Search className="w-5 h-5" />
-                            Buscar Licitações
-                        </>
+                        <><Search className="w-4 h-4" /> Pesquisar</>
                     )}
                 </button>
             </div>
 
-            <button
-                type="button"
-                onClick={() => setMostrarFiltrosAvancados(!mostrarFiltrosAvancados)}
-                className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4 text-sm font-medium"
-            >
-                <Filter className="w-4 h-4" />
-                {mostrarFiltrosAvancados ? 'Ocultar filtros avançados' : 'Mostrar filtros avançados'}
-            </button>
+            {/* Linha 3: Toggle filtros avançados */}
+            <div className="mt-3 flex items-center justify-between">
+                <button
+                    type="button"
+                    onClick={() => setAvancado(v => !v)}
+                    className={`flex items-center gap-1.5 text-xs font-medium transition ${(avancado || temFiltrosAvancados) ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                    <Filter className="w-3.5 h-3.5" />
+                    {avancado ? 'Ocultar filtros' : 'Filtros avançados'}
+                    {temFiltrosAvancados && !avancado && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />}
+                    {avancado ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
 
-            {mostrarFiltrosAvancados && (
-                <div className="pt-4 border-t border-gray-100 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                                <MapPin className="w-4 h-4" />
-                                Estado (UF)
-                            </label>
-                            <select
-                                value={filtros.uf}
-                                onChange={(e) => setFiltros({ ...filtros, uf: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                            >
-                                <option value="">Todos os estados</option>
-                                {UFS.map((uf) => (
-                                    <option key={uf} value={uf}>
-                                        {uf}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                                <DollarSign className="w-4 h-4" />
-                                Modalidade
-                            </label>
-                            <select
-                                value={filtros.modalidade}
-                                onChange={(e) => setFiltros({ ...filtros, modalidade: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                            >
-                                <option value="">Todas as modalidades</option>
-                                {Object.entries(MODALIDADES).map(([id, nome]) => (
-                                    <option key={id} value={id}>
-                                        {nome}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                                <Tag className="w-4 h-4" />
-                                Área de Atuação
-                            </label>
-                            <select
-                                value={filtros.area}
-                                onChange={(e) => setFiltros({ ...filtros, area: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                            >
-                                <option value="">Todas as áreas</option>
-                                {AREAS_ATUACAO.map((area) => (
-                                    <option key={area} value={area}>
-                                        {area}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                Publicação - De
-                            </label>
-                            <input
-                                type="date"
-                                value={filtros.dataInicio}
-                                onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                Publicação - Até
-                            </label>
-                            <input
-                                type="date"
-                                value={filtros.dataFim}
-                                onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Filtro de fontes */}
-                    <div className="flex items-center gap-4 flex-wrap">
-                        <span className="text-sm font-medium text-gray-700">Fontes:</span>
-                        {[
-                            { id: 'PNCP', label: 'PNCP', cor: 'blue' },
-                            { id: 'SESI', label: 'SESI', cor: 'amber' },
-                            { id: 'SENAI', label: 'SENAI', cor: 'orange' },
-                        ].map(({ id, label, cor }) => {
-                            const ativo = (filtros.fontes ?? ['PNCP', 'SESI', 'SENAI']).includes(id);
-                            return (
-                                <label key={id} className="flex items-center gap-1.5 cursor-pointer select-none">
-                                    <input
-                                        type="checkbox"
-                                        checked={ativo}
-                                        onChange={() => toggleFonte(id)}
-                                        className="rounded"
-                                    />
-                                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${cor === 'blue' ? 'bg-blue-100 text-blue-700' :
-                                            cor === 'amber' ? 'bg-amber-100 text-amber-700' :
-                                                'bg-orange-100 text-orange-700'
-                                        }`}>
-                                        {label}
-                                    </span>
-                                </label>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {mostrarFiltrosAvancados && (
-                <div className="flex justify-end mt-4 pt-4 border-t border-gray-100">
+                {temFiltrosAvancados && (
                     <button
                         type="button"
-                        onClick={limparFiltros}
-                        className="flex items-center gap-1 text-gray-500 hover:text-gray-700 text-sm"
+                        onClick={limpar}
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition"
                     >
-                        <X className="w-4 h-4" />
-                        Limpar filtros
+                        <X className="w-3 h-3" />
+                        Limpar
                     </button>
+                )}
+            </div>
+
+            {/* Filtros avançados */}
+            {avancado && (
+                <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
+                            <MapPin className="w-3 h-3" /> Estado (UF)
+                        </label>
+                        <select
+                            value={estado.uf}
+                            onChange={e => setEstado(prev => ({ ...prev, uf: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-800"
+                        >
+                            <option value="">Todos</option>
+                            {UFS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" /> Modalidade
+                        </label>
+                        <select
+                            value={estado.modalidade}
+                            onChange={e => setEstado(prev => ({ ...prev, modalidade: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-800"
+                        >
+                            <option value="">Todas</option>
+                            {Object.entries(MODALIDADES).map(([id, nome]) => (
+                                <option key={id} value={id}>{nome}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
+                            <Tag className="w-3 h-3" /> Área
+                        </label>
+                        <select
+                            value={estado.area}
+                            onChange={e => setEstado(prev => ({ ...prev, area: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-800"
+                        >
+                            <option value="">Todas</option>
+                            {AREAS_ATUACAO.map(a => <option key={a} value={a}>{a}</option>)}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Datas personalizadas</label>
+                        <div className="flex gap-1 items-center">
+                            <input
+                                type="date"
+                                value={estado.dataInicio}
+                                onChange={e => setEstado(prev => ({ ...prev, dataInicio: e.target.value, periodoId: 'custom' }))}
+                                className="flex-1 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs text-gray-800"
+                            />
+                            <span className="text-gray-400 text-xs">–</span>
+                            <input
+                                type="date"
+                                value={estado.dataFim}
+                                onChange={e => setEstado(prev => ({ ...prev, dataFim: e.target.value, periodoId: 'custom' }))}
+                                className="flex-1 px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs text-gray-800"
+                            />
+                        </div>
+                    </div>
                 </div>
             )}
         </form>

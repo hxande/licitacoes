@@ -12,7 +12,7 @@ import { useFavoritos } from '@/hooks/useFavoritos';
 import { usePipeline } from '@/hooks/usePipeline';
 import { usePerfilEmpresa } from '@/hooks/usePerfilEmpresa';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { Building2, Target, Zap, Heart, BarChart3, UserCog, Sparkles, Kanban, User, Loader2, FileUp, BrainCircuit } from 'lucide-react';
+import { Building2, Target, Zap, Heart, BarChart3, UserCog, Sparkles, Kanban, Loader2, FileUp, BrainCircuit, Search } from 'lucide-react';
 import { NotificacaoBell } from '@/components/NotificacaoBell';
 
 export default function Home() {
@@ -24,6 +24,7 @@ export default function Home() {
   const { perfil, salvarPerfil, limparPerfil, calcularMatch, temPerfil, loaded } = usePerfilEmpresa();
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
   const [modalResumoAberto, setModalResumoAberto] = useState(false);
+  const [jaCarregou, setJaCarregou] = useState(false);
 
   // Criar Set de IDs do pipeline para verificação rápida
   const pipelineIds = useMemo(() =>
@@ -38,19 +39,10 @@ export default function Home() {
     }
   }, [carregandoAuth, autenticado, router]);
 
-  useEffect(() => {
-    if (!autenticado) return;
-
-    const today = new Date();
-    const startDate = new Date();
-    startDate.setDate(today.getDate() - 15);
-
-    buscar({
-      dataInicio: startDate.toISOString().split('T')[0],
-      dataFim: today.toISOString().split('T')[0],
-      fontes: ['PNCP', 'SESI', 'SENAI'],
-    });
-  }, [buscar, autenticado]);
+  const handleBuscar = (filtros: Parameters<typeof buscar>[0]) => {
+    setJaCarregou(true);
+    buscar(filtros);
+  };
 
   // Calcular matches para todas as licitações (memoized - calcularMatch is expensive)
   const licitacoesComMatch = useMemo(() =>
@@ -146,126 +138,137 @@ export default function Home() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Banner de Match se tiver perfil */}
-        {temPerfil && licitacoesComBomMatch > 0 && (
-          <div className="mb-6 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-4 text-white shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="font-bold text-lg">
-                  {licitacoesComBomMatch} licitações com bom match para sua empresa!
-                </p>
-                <p className="text-green-100 text-sm">
-                  Baseado no perfil de {perfil?.nomeEmpresa || 'sua empresa'}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Filtros sempre visíveis */}
+        <Filtros onBuscar={handleBuscar} loading={loading} />
 
-        {/* Banner para configurar perfil se não tiver */}
-        {loaded && !temPerfil && (
-          <div className="mb-6 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl p-4 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-lg">
-                  <UserCog className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="font-bold text-lg">
-                    Configure o perfil da sua empresa
-                  </p>
-                  <p className="text-blue-100 text-sm">
-                    Receba sugestões personalizadas com % de compatibilidade
-                  </p>
-                </div>
-              </div>
+        {/* Estado: ainda não pesquisou */}
+        {!jaCarregou && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-5">
+              <Search className="w-8 h-8 text-blue-400" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+              Pronto para buscar licitações
+            </h2>
+            <p className="text-gray-500 max-w-md text-sm leading-relaxed">
+              Selecione as fontes e o período acima, adicione um termo opcional e clique em{' '}
+              <span className="font-medium text-blue-600">Pesquisar</span>.
+            </p>
+            {loaded && !temPerfil && (
               <button
                 onClick={() => setModalPerfilAberto(true)}
-                className="px-4 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition"
+                className="mt-6 inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition text-sm font-medium shadow-sm"
               >
-                Configurar Agora
+                <UserCog className="w-4 h-4" />
+                Configure o perfil para ver % de match
               </button>
-            </div>
+            )}
+            {temPerfil && (
+              <p className="mt-4 text-xs text-green-600 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                Perfil configurado — os resultados virão com % de compatibilidade
+              </p>
+            )}
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Target className="w-5 h-5 text-blue-600" />
+        {/* Resultados após pesquisa */}
+        {jaCarregou && (
+          <>
+            {/* Banner match */}
+            {temPerfil && licitacoesComBomMatch > 0 && (
+              <div className="mb-5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-4 text-white shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold">
+                      {licitacoesComBomMatch} licitações com bom match para sua empresa
+                    </p>
+                    <p className="text-green-100 text-sm">
+                      Baseado no perfil de {perfil?.nomeEmpresa || 'sua empresa'}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{meta.totalFiltrado}</p>
-                <p className="text-sm text-gray-500">Licitações encontradas</p>
+            )}
+
+            {/* Stats cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <Target className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-gray-900">{meta.totalFiltrado}</p>
+                    <p className="text-xs text-gray-500">Encontradas</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-50 rounded-lg">
+                    <Zap className="w-4 h-4 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-gray-900">
+                      {licitacoesComBomMatch || licitacoes.filter(l =>
+                        l.situacao.toLowerCase().includes('aberto') ||
+                        l.situacao.toLowerCase().includes('aberta')
+                      ).length}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {temPerfil ? 'Bom match (≥60%)' : 'Abertas'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-50 rounded-lg">
+                    <Building2 className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-gray-900">
+                      {new Set(licitacoes.map(l => l.uf)).size}
+                    </p>
+                    <p className="text-xs text-gray-500">Estados</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-pink-50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-pink-50 rounded-lg">
+                    <Heart className="w-4 h-4 text-pink-600" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-pink-600">{totalFavoritos}</p>
+                    <p className="text-xs text-gray-500">Favoritas</p>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Zap className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {licitacoesComBomMatch || licitacoes.filter(l =>
-                    l.situacao.toLowerCase().includes('aberto') ||
-                    l.situacao.toLowerCase().includes('aberta')
-                  ).length}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {temPerfil ? 'Bom match (≥60%)' : 'Propostas abertas'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Building2 className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {new Set(licitacoes.map(l => l.uf)).size}
-                </p>
-                <p className="text-sm text-gray-500">Estados com licitações</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-pink-100">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-pink-100 rounded-lg">
-                <Heart className="w-5 h-5 text-pink-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-pink-600">{totalFavoritos}</p>
-                <p className="text-sm text-gray-500">Licitações favoritas</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Filtros onBuscar={buscar} loading={loading} />
-
-        <ListaLicitacoes
-          licitacoes={licitacoesComMatch}
-          loading={loading || !favoritosLoaded || !pipelineLoaded}
-          error={error}
-          meta={meta}
-          onCarregarMais={carregarMais}
-          onIrParaPagina={irParaPagina}
-          favoritos={favoritos}
-          onToggleFavorito={toggleFavorito}
-          perfil={perfil}
-          pipelineIds={pipelineIds}
-          onAdicionarPipeline={adicionarAoPipeline}
-        />
+            <ListaLicitacoes
+              licitacoes={licitacoesComMatch}
+              loading={loading || !favoritosLoaded || !pipelineLoaded}
+              error={error}
+              meta={meta}
+              onCarregarMais={carregarMais}
+              onIrParaPagina={irParaPagina}
+              favoritos={favoritos}
+              onToggleFavorito={toggleFavorito}
+              perfil={perfil}
+              pipelineIds={pipelineIds}
+              onAdicionarPipeline={adicionarAoPipeline}
+            />
+          </>
+        )}
       </div>
 
       <footer className="bg-white border-t border-gray-100 mt-12">
