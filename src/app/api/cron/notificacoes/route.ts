@@ -2,8 +2,81 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { enviarEmail } from '@/lib/email';
 import { PerfilEmpresa } from '@/types/empresa';
-import { buscarLicitacoesRecentes, montarDadosEmail } from '@/services/notificacao-email';
+import { buscarLicitacoesRecentes, montarDadosEmail, DadosEmailUsuario } from '@/services/notificacao-email';
 import { gerarSubjectEmail, gerarHtmlEmail, gerarTextoEmail } from '@/services/email-templates';
+
+async function persistirNotificacoesInApp(userId: bigint, dadosEmail: DadosEmailUsuario) {
+    const hojeInicio = new Date();
+    hojeInicio.setHours(0, 0, 0, 0);
+
+    const criar: Array<{
+        user_id: bigint;
+        tipo: string;
+        titulo: string;
+        corpo: string;
+        licitacao_id?: string;
+    }> = [];
+
+    for (const { licitacao, match } of dadosEmail.novasLicitacoes) {
+        const jaExiste = await prisma.notificacao.findFirst({
+            where: {
+                user_id: userId,
+                tipo: 'nova_licitacao',
+                licitacao_id: licitacao.id,
+                criado_em: { gte: hojeInicio },
+            },
+            select: { id: true },
+        });
+        if (!jaExiste) {
+            const objeto = licitacao.objeto.length > 60
+                ? licitacao.objeto.slice(0, 60) + '…'
+                : licitacao.objeto;
+            criar.push({
+                user_id: userId,
+                tipo: 'nova_licitacao',
+                titulo: `Match ${match.percentual}%: ${objeto}`,
+                corpo: `${licitacao.orgao} (${licitacao.uf})`,
+                licitacao_id: licitacao.id,
+            });
+        }
+    }
+
+    for (const lembrete of dadosEmail.lembretes) {
+        const jaExiste = await prisma.notificacao.findFirst({
+            where: {
+                user_id: userId,
+                tipo: 'prazo_chegando',
+                licitacao_id: lembrete.id,
+                criado_em: { gte: hojeInicio },
+            },
+            select: { id: true },
+        });
+        if (!jaExiste) {
+            const objeto = lembrete.objeto.length > 60
+                ? lembrete.objeto.slice(0, 60) + '…'
+                : lembrete.objeto;
+            const prefixo = lembrete.diasRestantes === 0
+                ? 'Prazo HOJE'
+                : lembrete.diasRestantes === 1
+                    ? 'Prazo amanhã'
+                    : `Prazo em ${lembrete.diasRestantes} dias`;
+            const dataFormatada = new Date(lembrete.dataAbertura).toLocaleDateString('pt-BR', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+            });
+            criar.push({
+                user_id: userId,
+                tipo: 'prazo_chegando',
+                titulo: `${prefixo}: ${objeto}`,
+                corpo: `${lembrete.orgao} (${lembrete.uf}) — Abertura: ${dataFormatada}`,
+                licitacao_id: lembrete.id,
+            });
+        }
+    }
+
+    if (criar.length > 0) {
+        await prisma.notificacao.createMany({ data: criar });
+    }
+}
 
 export const maxDuration = 300;
 
@@ -91,6 +164,9 @@ export async function GET(req: NextRequest) {
                     perfilDados,
                     licitacoesRecentes
                 );
+
+                // 4b.5 Persistir notificações in-app
+                await persistirNotificacoesInApp(usuario.id, dadosEmail);
 
                 // 4c. Se não tiver conteúdo, skip
                 if (dadosEmail.novasLicitacoes.length === 0 && dadosEmail.lembretes.length === 0) {

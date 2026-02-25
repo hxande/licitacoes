@@ -15,6 +15,7 @@ import {
     Shield,
     Calendar,
 } from 'lucide-react';
+import { NotificacaoBell } from '@/components/NotificacaoBell';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAlertas } from '@/hooks/useAlertas';
 
@@ -128,13 +129,16 @@ export default function PerfilPage() {
                             <div className="h-6 w-px bg-gray-200" />
                             <h1 className="text-xl font-bold text-gray-800">Meu Perfil</h1>
                         </div>
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                        >
-                            <LogOut className="w-4 h-4" />
-                            Sair
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <NotificacaoBell />
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                Sair
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>

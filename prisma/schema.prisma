@@ -112,6 +112,21 @@ model log_notificacao {
   @@index([user_id, tipo, criado_em])
 }
 
+model notificacao {
+  id           BigInt    @id @default(autoincrement())
+  user_id      BigInt
+  tipo         String    // 'nova_licitacao' | 'prazo_chegando'
+  titulo       String
+  corpo        String
+  licitacao_id String?
+  lida         Boolean   @default(false)
+  lido_em      DateTime?
+  criado_em    DateTime  @default(now())
+
+  @@index([user_id, lida, criado_em])
+  @@index([user_id, tipo, licitacao_id, criado_em])
+}
+
 // Cache de análises de IA para economizar tokens
 model cache_analise_ia {
   id             String   @id @default(cuid())

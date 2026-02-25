@@ -13,6 +13,7 @@ import { usePipeline } from '@/hooks/usePipeline';
 import { usePerfilEmpresa } from '@/hooks/usePerfilEmpresa';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { Building2, Target, Zap, Heart, BarChart3, UserCog, Sparkles, Kanban, User, Loader2, FileUp, BrainCircuit } from 'lucide-react';
+import { NotificacaoBell } from '@/components/NotificacaoBell';
 
 export default function Home() {
   const router = useRouter();
@@ -125,6 +126,7 @@ export default function Home() {
                 <BarChart3 className="w-4 h-4" />
                 Dashboard
               </Link>
+              <NotificacaoBell />
               {/* Botão Perfil Usuário */}
               <Link
                 href="/perfil"

@@ -35,6 +35,7 @@ import {
     BarChart3,
     Activity,
 } from 'lucide-react';
+import { NotificacaoBell } from '@/components/NotificacaoBell';
 import { DashboardData } from '@/types/dashboard';
 
 const COLORS = [
@@ -178,6 +179,7 @@ export default function DashboardPage() {
 
                         {/* Filtro de Período */}
                         <div className="flex items-center gap-3">
+                            <NotificacaoBell />
                             {/* Atalhos de período */}
                             <div className="flex gap-1">
                                 {[
@@ -201,8 +203,8 @@ export default function DashboardPage() {
                                                 });
                                             }}
                                             className={`px-2 py-1 text-xs font-medium rounded transition ${isAtivo
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                                 }`}
                                         >
                                             {p.label}
