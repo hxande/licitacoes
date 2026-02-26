@@ -79,56 +79,64 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Resumir PDF — icon-only on mobile */}
               <button
                 onClick={() => setModalResumoAberto(true)}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-12 min-w-[130px] bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:from-cyan-600 hover:to-blue-600 transition text-sm font-medium shadow-sm"
+                className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 h-10 sm:h-12 sm:min-w-[130px] bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:from-cyan-600 hover:to-blue-600 transition text-sm font-medium shadow-sm"
+                title="Resumir PDF"
               >
                 <FileUp className="w-4 h-4" />
-                Resumir PDF
+                <span className="hidden sm:inline">Resumir PDF</span>
               </button>
+              {/* Config. Perfil — icon-only on mobile */}
               <button
                 onClick={() => setModalPerfilAberto(true)}
-                className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 h-12 min-w-[130px] rounded-lg transition text-sm font-medium shadow-sm ${temPerfil
+                className={`inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 h-10 sm:h-12 sm:min-w-[130px] rounded-lg transition text-sm font-medium shadow-sm ${temPerfil
                   ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
                   }`}
+                title={temPerfil ? 'Perfil Empresa' : 'Config. Perfil'}
               >
                 <UserCog className="w-4 h-4" />
-                {temPerfil ? 'Perfil Empresa' : 'Config. Perfil'}
+                <span className="hidden sm:inline">{temPerfil ? 'Perfil Empresa' : 'Config. Perfil'}</span>
               </button>
+              {/* Acompanhar — icon-only on mobile */}
               <Link
                 href="/pipeline"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-12 min-w-[130px] bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition text-sm font-medium shadow-sm"
+                className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 h-10 sm:h-12 sm:min-w-[130px] bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition text-sm font-medium shadow-sm"
+                title="Acompanhar"
               >
                 <Kanban className="w-4 h-4" />
-                Acompanhar
+                <span className="hidden sm:inline">Acompanhar</span>
               </Link>
+              {/* IA Recomenda — hidden on mobile */}
               <Link
                 href="/recomendacoes"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-12 min-w-[130px] bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition text-sm font-medium shadow-sm"
+                className="hidden md:inline-flex items-center justify-center gap-2 px-4 py-2.5 h-12 min-w-[130px] bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition text-sm font-medium shadow-sm"
               >
                 <BrainCircuit className="w-4 h-4" />
                 IA Recomenda
               </Link>
+              {/* Dashboard — hidden on mobile */}
               <Link
                 href="/dashboard"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-12 min-w-[130px] bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition text-sm font-medium shadow-sm"
+                className="hidden md:inline-flex items-center justify-center gap-2 px-4 py-2.5 h-12 min-w-[130px] bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition text-sm font-medium shadow-sm"
               >
                 <BarChart3 className="w-4 h-4" />
                 Dashboard
               </Link>
               <NotificacaoBell />
-              {/* Botão Perfil Usuário */}
+              {/* Perfil Usuário — icon-only on mobile */}
               <Link
                 href="/perfil"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-12 min-w-[130px] bg-gray-100 hover:bg-gray-200 rounded-lg transition text-sm font-medium shadow-sm"
+                className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 h-10 sm:h-12 sm:min-w-[130px] bg-gray-100 hover:bg-gray-200 rounded-lg transition text-sm font-medium shadow-sm"
                 title="Meu Perfil"
               >
-                <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
                   {usuario?.nome?.charAt(0).toUpperCase() || usuario?.email?.charAt(0).toUpperCase() || 'U'}
                 </div>
-                <span className="text-gray-700">
+                <span className="hidden sm:inline text-gray-700">
                   {usuario?.nome?.split(' ')[0] || 'Perfil'}
                 </span>
               </Link>

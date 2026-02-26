@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter, MapPin, DollarSign, X, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import { FiltrosLicitacao, UFS, MODALIDADES, AREAS_ATUACAO } from '@/types/licitacao';
 
@@ -94,10 +94,13 @@ function salvarStorage(estado: EstadoFiltros) {
 }
 
 export function Filtros({ onBuscar, loading }: FiltrosProps) {
-    const [estado, setEstado] = useState<EstadoFiltros>(() =>
-        typeof window !== 'undefined' ? lerStorage() : estadoPadrao()
-    );
+    const [estado, setEstado] = useState<EstadoFiltros>(estadoPadrao);
     const [avancado, setAvancado] = useState(false);
+
+    // Hydrate from localStorage after mount to avoid server/client mismatch
+    useEffect(() => {
+        setEstado(lerStorage());
+    }, []);
 
     const toggleFonte = (id: string) => {
         const novas = estado.fontes.includes(id)
