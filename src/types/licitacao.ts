@@ -29,6 +29,17 @@ export interface FiltrosLicitacao {
     fontes?: string[];
 }
 
+export interface PNCPItem {
+    numeroItem: number;
+    descricao: string;
+    materialOuServico?: string; // 'M' = material, 'S' = serviço
+    quantidade?: number;
+    unidadeMedida?: string;
+    valorUnitarioEstimado?: number;
+    valorTotal?: number;
+    criterioJulgamentoNome?: string;
+}
+
 export interface PNCPContratacao {
     orgaoEntidade: {
         cnpj: string;

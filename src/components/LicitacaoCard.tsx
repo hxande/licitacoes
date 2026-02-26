@@ -18,8 +18,10 @@ import {
     BarChart3,
     Plus,
     Check,
+    ChevronDown,
+    List,
 } from 'lucide-react';
-import { Licitacao } from '@/types/licitacao';
+import { Licitacao, PNCPItem } from '@/types/licitacao';
 import { MatchResult, PerfilEmpresa } from '@/types/empresa';
 import { ModalAnaliseIA } from './ModalAnaliseIA';
 import { ModalMatchIA } from './ModalMatchIA';
@@ -49,6 +51,29 @@ export function LicitacaoCard({
     const [modalAnaliseAberta, setModalAnaliseAberta] = useState(false);
     const [modalMatchIAAberta, setModalMatchIAAberta] = useState(false);
     const [modalMercadoAberta, setModalMercadoAberta] = useState(false);
+    const [itensAbertos, setItensAbertos] = useState(false);
+    const [itens, setItens] = useState<PNCPItem[] | null>(null);
+    const [carregandoItens, setCarregandoItens] = useState(false);
+
+    const toggleItens = async () => {
+        if (!itensAbertos && itens === null) {
+            setCarregandoItens(true);
+            try {
+                const afterCnpj = licitacao.id.slice(licitacao.cnpjOrgao.length + 1);
+                const [ano, sequencial] = afterCnpj.split('-');
+                const res = await fetch(
+                    `/api/licitacoes/itens?cnpj=${licitacao.cnpjOrgao}&ano=${ano}&sequencial=${sequencial}`
+                );
+                const data = await res.json();
+                setItens(data.itens ?? []);
+            } catch {
+                setItens([]);
+            } finally {
+                setCarregandoItens(false);
+            }
+        }
+        setItensAbertos(v => !v);
+    };
 
     const handleAdicionarPipeline = () => {
         if (!jaEstaNoPipeline && onAdicionarPipeline) {
@@ -248,6 +273,70 @@ export function LicitacaoCard({
                     </span>
                 </div>
             </div>
+
+            {/* Itens da licitação — expansível, apenas PNCP */}
+            {licitacao.fonte === 'PNCP' && (
+                <div className="mb-4">
+                    <button
+                        onClick={toggleItens}
+                        disabled={carregandoItens}
+                        className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50 transition"
+                    >
+                        {carregandoItens ? (
+                            <span className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin inline-block" />
+                        ) : (
+                            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${itensAbertos ? 'rotate-180' : ''}`} />
+                        )}
+                        <List className="w-3.5 h-3.5" />
+                        {itensAbertos ? 'Ocultar itens' : 'Ver itens'}
+                        {itens && itens.length > 0 && (
+                            <span className="text-gray-400 font-normal">({itens.length})</span>
+                        )}
+                    </button>
+
+                    {itensAbertos && itens !== null && (
+                        <div className="mt-2 space-y-1">
+                            {itens.length === 0 ? (
+                                <p className="text-xs text-gray-400 py-1">Nenhum item disponível no PNCP.</p>
+                            ) : (
+                                <>
+                                    {itens.slice(0, 5).map((item) => (
+                                        <div
+                                            key={item.numeroItem}
+                                            className="flex items-baseline gap-2 bg-gray-50 rounded-lg px-2.5 py-1.5 text-xs"
+                                        >
+                                            <span className="font-semibold text-gray-400 w-4 flex-shrink-0 text-right">
+                                                {item.numeroItem}.
+                                            </span>
+                                            <span
+                                                className="flex-1 text-gray-700 line-clamp-1 min-w-0"
+                                                title={item.descricao}
+                                            >
+                                                {item.descricao}
+                                            </span>
+                                            {item.quantidade != null && (
+                                                <span className="text-gray-400 flex-shrink-0 whitespace-nowrap">
+                                                    {item.quantidade}{item.unidadeMedida ? ` ${item.unidadeMedida}` : ''}
+                                                </span>
+                                            )}
+                                            {(item.valorUnitarioEstimado || item.valorTotal) ? (
+                                                <span className="text-green-600 font-semibold flex-shrink-0 whitespace-nowrap">
+                                                    {formatarMoeda(item.valorUnitarioEstimado ?? item.valorTotal)}
+                                                </span>
+                                            ) : null}
+                                        </div>
+                                    ))}
+                                    {itens.length > 5 && (
+                                        <p className="text-xs text-gray-400 text-right pt-0.5">
+                                            + {itens.length - 5} item{itens.length - 5 !== 1 ? 's' : ''} — ver todos no PNCP
+                                        </p>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100 mt-auto">
                 <button
