@@ -7,6 +7,14 @@ import { Licitacao } from '@/types/licitacao';
 const FONTES_VALIDAS = ['PNCP', 'SESI', 'SENAI', 'SENAC'] as const;
 type FonteValida = typeof FONTES_VALIDAS[number];
 
+// Envolve uma promise com timeout — nunca rejeita, resolve com o fallback se exceder
+function comTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+    return Promise.race([
+        p,
+        new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms)),
+    ]);
+}
+
 export async function GET(request: NextRequest) {
     try {
         const searchParams = request.nextUrl.searchParams;
@@ -37,29 +45,40 @@ export async function GET(request: NextRequest) {
         const incluirSENAC = fontesSolicitadas.includes('SENAC');
 
         // Busca paralela com fallback independente por fonte
+        // Timeouts globais garantem que a função Vercel (limite 10s) nunca estoure:
+        //   PNCP: max 7s (13 requisições paralelas, cada uma com 15s individual)
+        //   Sistema S / SENAC: max 4s (27 requisições por entidade, timeout individual 3s)
         const [resultadoPNCP, resultadoSistemaS, resultadoSENAC] = await Promise.allSettled([
             incluirPNCP
-                ? buscarLicitacoesPNCP({
-                    dataInicial,
-                    dataFinal,
-                    ufSigla,
-                    codigoModalidadeContratacao: modalidade ? parseInt(modalidade) : undefined,
-                    pagina: 1,
-                    tamanhoPagina: 50,
-                })
+                ? comTimeout(
+                    buscarLicitacoesPNCP({
+                        dataInicial,
+                        dataFinal,
+                        ufSigla,
+                        codigoModalidadeContratacao: modalidade ? parseInt(modalidade) : undefined,
+                        pagina: 1,
+                        tamanhoPagina: 50,
+                    }),
+                    7000,
+                    null,
+                )
                 : Promise.resolve(null),
 
             incluirSistemaS
-                ? buscarLicitacoesSistemaS({
-                    dataInicial,
-                    dataFinal,
-                    ufSigla,
-                    entidades: entidadesSistemaS,
-                })
+                ? comTimeout(
+                    buscarLicitacoesSistemaS({
+                        dataInicial,
+                        dataFinal,
+                        ufSigla,
+                        entidades: entidadesSistemaS,
+                    }),
+                    4000,
+                    [],
+                )
                 : Promise.resolve([]),
 
             incluirSENAC
-                ? buscarLicitacoesSENAC({ ufSigla })
+                ? comTimeout(buscarLicitacoesSENAC({ ufSigla }), 4000, [])
                 : Promise.resolve([]),
         ]);
 
