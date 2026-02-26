@@ -44,24 +44,21 @@ export async function GET(request: NextRequest) {
         const incluirSistemaS = entidadesSistemaS.length > 0;
         const incluirSENAC = fontesSolicitadas.includes('SENAC');
 
-        // Busca paralela com fallback independente por fonte
-        // Timeouts globais garantem que a função Vercel (limite 10s) nunca estoure:
-        //   PNCP: max 7s (13 requisições paralelas, cada uma com 15s individual)
-        //   Sistema S / SENAC: max 4s (27 requisições por entidade, timeout individual 3s)
+        // Busca paralela com fallback independente por fonte.
+        // comTimeout só é aplicado em Sistema S / SENAC que fazem 27+ requisições por
+        // entidade e podem facilmente ultrapassar o limite de 10s da Vercel.
+        // PNCP usa 13 requisições paralelas com timeout individual gerenciado pelo
+        // próprio fetchWithRetry — sem wrapper global para não cortar resultados válidos.
         const [resultadoPNCP, resultadoSistemaS, resultadoSENAC] = await Promise.allSettled([
             incluirPNCP
-                ? comTimeout(
-                    buscarLicitacoesPNCP({
-                        dataInicial,
-                        dataFinal,
-                        ufSigla,
-                        codigoModalidadeContratacao: modalidade ? parseInt(modalidade) : undefined,
-                        pagina: 1,
-                        tamanhoPagina: 50,
-                    }),
-                    7000,
-                    null,
-                )
+                ? buscarLicitacoesPNCP({
+                    dataInicial,
+                    dataFinal,
+                    ufSigla,
+                    codigoModalidadeContratacao: modalidade ? parseInt(modalidade) : undefined,
+                    pagina: 1,
+                    tamanhoPagina: 50,
+                })
                 : Promise.resolve(null),
 
             incluirSistemaS
@@ -72,13 +69,13 @@ export async function GET(request: NextRequest) {
                         ufSigla,
                         entidades: entidadesSistemaS,
                     }),
-                    4000,
+                    5000,
                     [],
                 )
                 : Promise.resolve([]),
 
             incluirSENAC
-                ? comTimeout(buscarLicitacoesSENAC({ ufSigla }), 4000, [])
+                ? comTimeout(buscarLicitacoesSENAC({ ufSigla }), 5000, [])
                 : Promise.resolve([]),
         ]);
 
