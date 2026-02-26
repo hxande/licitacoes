@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { LicitacaoCard } from './LicitacaoCard';
 import { Licitacao } from '@/types/licitacao';
 import { MatchResult, PerfilEmpresa } from '@/types/empresa';
-import { FileQuestion, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Heart, List, Sparkles } from 'lucide-react';
+import { FileQuestion, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Heart, List, Download, ArrowUpDown } from 'lucide-react';
 
 interface LicitacaoComMatch extends Licitacao {
     match?: MatchResult | null;
@@ -155,6 +155,15 @@ function Paginacao({
     );
 }
 
+type OrdenacaoId = 'recentes' | 'abertura' | 'valor' | 'match';
+
+const OPCOES_SORT: { id: OrdenacaoId; label: string }[] = [
+    { id: 'recentes', label: 'Mais recentes' },
+    { id: 'abertura', label: 'Abertura próxima' },
+    { id: 'valor', label: 'Maior valor' },
+    { id: 'match', label: '% Match' },
+];
+
 export function ListaLicitacoes({
     licitacoes,
     loading,
@@ -169,11 +178,60 @@ export function ListaLicitacoes({
     onAdicionarPipeline,
 }: ListaLicitacoesProps) {
     const [mostrarApenasFavoritos, setMostrarApenasFavoritos] = useState(false);
+    const [ordenacao, setOrdenacao] = useState<OrdenacaoId>('recentes');
 
-    // Filtrar licitações se necessário
+    const temMatch = licitacoes.some(l => l.match && l.match.percentual > 0);
+
+    // Filtrar por favoritos
     const licitacoesFiltradas = mostrarApenasFavoritos
         ? licitacoes.filter(l => favoritos.has(l.id))
         : licitacoes;
+
+    // Ordenar resultados
+    const licitacoesOrdenadas = useMemo(() => {
+        const lista = [...licitacoesFiltradas];
+        switch (ordenacao) {
+            case 'abertura':
+                return lista.sort((a, b) => {
+                    if (!a.dataAbertura) return 1;
+                    if (!b.dataAbertura) return -1;
+                    return new Date(a.dataAbertura).getTime() - new Date(b.dataAbertura).getTime();
+                });
+            case 'valor':
+                return lista.sort((a, b) => (b.valorEstimado ?? 0) - (a.valorEstimado ?? 0));
+            case 'match':
+                return lista.sort((a, b) => (b.match?.percentual ?? 0) - (a.match?.percentual ?? 0));
+            default:
+                return lista;
+        }
+    }, [licitacoesFiltradas, ordenacao]);
+
+    const exportarCSV = () => {
+        const headers = ['Objeto', 'Órgão', 'UF', 'Município', 'Modalidade', 'Situação', 'Data Publicação', 'Data Abertura', 'Valor Estimado (R$)', 'Fonte', 'Área'];
+        const linhas = licitacoes.map(l => [
+            `"${(l.objeto || '').replace(/"/g, '""')}"`,
+            `"${(l.orgao || '').replace(/"/g, '""')}"`,
+            l.uf || '',
+            l.municipio || '',
+            `"${(l.modalidade || '').replace(/"/g, '""')}"`,
+            `"${(l.situacao || '').replace(/"/g, '""')}"`,
+            l.dataPublicacao || '',
+            l.dataAbertura || '',
+            l.valorEstimado !== undefined ? l.valorEstimado.toFixed(2) : '',
+            l.fonte || '',
+            `"${(l.areaAtuacao || '').replace(/"/g, '""')}"`,
+        ].join(','));
+        const csv = [headers.join(','), ...linhas].join('\r\n');
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `licitacoes_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 
     const totalFavoritos = licitacoes.filter(l => favoritos.has(l.id)).length;
 
@@ -213,45 +271,68 @@ export function ListaLicitacoes({
 
     return (
         <div className={loading ? 'opacity-60 pointer-events-none' : ''}>
-            {/* Toggle Favoritos */}
-            <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center gap-4">
-                    <p className="text-gray-600">
-                        {mostrarApenasFavoritos ? (
-                            <>
-                                Exibindo <span className="font-semibold text-pink-600">{licitacoesFiltradas.length}</span> licitações favoritas
-                            </>
-                        ) : (
-                            <>
-                                Exibindo <span className="font-semibold text-gray-900">{inicio}-{fim}</span> de{' '}
-                                <span className="font-semibold text-gray-900">{meta.totalFiltrado}</span> licitações
-                                {meta.totalRegistros > meta.totalFiltrado && (
-                                    <span className="text-gray-400"> (filtradas de {meta.totalRegistros} no período)</span>
-                                )}
-                            </>
-                        )}
-                    </p>
-                </div>
-                <div className="flex items-center gap-3">
+            {/* Toolbar: contagem + ações */}
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-3">
+                <p className="text-gray-600 text-sm">
+                    {mostrarApenasFavoritos ? (
+                        <>Exibindo <span className="font-semibold text-pink-600">{licitacoesFiltradas.length}</span> favoritas</>
+                    ) : (
+                        <>
+                            Exibindo <span className="font-semibold text-gray-900">{inicio}–{fim}</span> de{' '}
+                            <span className="font-semibold text-gray-900">{meta.totalFiltrado}</span>
+                            {meta.totalRegistros > meta.totalFiltrado && (
+                                <span className="text-gray-400"> (de {meta.totalRegistros} no período)</span>
+                            )}
+                        </>
+                    )}
+                </p>
+                <div className="flex items-center gap-2">
                     {loading && (
-                        <div className="flex items-center gap-2 text-blue-600">
+                        <div className="flex items-center gap-1.5 text-blue-600">
                             <Loader2 className="w-4 h-4 animate-spin" />
                             <span className="text-sm">Carregando...</span>
                         </div>
                     )}
-                    {/* Botão Ver Favoritos */}
+                    <button
+                        onClick={exportarCSV}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
+                        title="Exportar para CSV"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span className="hidden sm:inline">Exportar</span>
+                    </button>
                     <button
                         onClick={() => setMostrarApenasFavoritos(!mostrarApenasFavoritos)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${mostrarApenasFavoritos
-                                ? 'bg-pink-600 text-white hover:bg-pink-700'
-                                : 'bg-white border border-gray-200 text-gray-700 hover:bg-pink-50 hover:border-pink-300 hover:text-pink-600'
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium text-sm transition-all ${mostrarApenasFavoritos
+                            ? 'bg-pink-600 text-white hover:bg-pink-700'
+                            : 'bg-white border border-gray-200 text-gray-700 hover:bg-pink-50 hover:border-pink-300 hover:text-pink-600'
                             }`}
                     >
                         <Heart className={`w-4 h-4 ${mostrarApenasFavoritos ? 'fill-current' : ''}`} />
-                        {mostrarApenasFavoritos ? 'Ver Todas' : `Favoritas (${totalFavoritos})`}
+                        <span className="hidden sm:inline">{mostrarApenasFavoritos ? 'Ver Todas' : `Favoritas (${totalFavoritos})`}</span>
+                        <span className="sm:hidden">{totalFavoritos > 0 ? totalFavoritos : ''}</span>
                     </button>
                 </div>
             </div>
+
+            {/* Sort chips */}
+            {!mostrarApenasFavoritos && (
+                <div className="flex items-center gap-1.5 flex-wrap mb-4">
+                    <ArrowUpDown className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                    {OPCOES_SORT.filter(o => o.id !== 'match' || temMatch).map(opt => (
+                        <button
+                            key={opt.id}
+                            onClick={() => setOrdenacao(opt.id)}
+                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${ordenacao === opt.id
+                                ? 'bg-gray-800 text-white'
+                                : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
+                                }`}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {/* Lista vazia de favoritos */}
             {mostrarApenasFavoritos && licitacoesFiltradas.length === 0 && (
@@ -274,7 +355,7 @@ export function ListaLicitacoes({
             {/* Grid de licitações */}
             {(!mostrarApenasFavoritos || licitacoesFiltradas.length > 0) && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {licitacoesFiltradas.map((licitacao) => (
+                    {licitacoesOrdenadas.map((licitacao) => (
                         <LicitacaoCard
                             key={licitacao.id}
                             licitacao={licitacao}

@@ -29,6 +29,13 @@ const TIPOS_RAPIDOS = [
     { id: '8', label: 'Dispensa', destaque: true },
 ];
 
+const VALOR_CHIPS = [
+    { id: '', label: 'Qualquer', max: undefined as number | undefined },
+    { id: '57k', label: '≤ R$57k', max: 57000 },
+    { id: '114k', label: '≤ R$114k', max: 114000 },
+    { id: '500k', label: '≤ R$500k', max: 500000 },
+];
+
 const STORAGE_KEY = 'licitaly_filtros_v1';
 
 interface EstadoFiltros {
@@ -40,6 +47,7 @@ interface EstadoFiltros {
     uf: string;
     modalidade: string;
     area: string;
+    valorId: string;
 }
 
 function calcularDatas(periodoId: string): { dataInicio: string; dataFim: string } {
@@ -65,6 +73,7 @@ function estadoPadrao(): EstadoFiltros {
         uf: '',
         modalidade: '',
         area: '',
+        valorId: '',
     };
 }
 
@@ -118,6 +127,7 @@ export function Filtros({ onBuscar, loading }: FiltrosProps) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         salvarStorage(estado);
+        const valorChip = VALOR_CHIPS.find(v => v.id === estado.valorId);
         onBuscar({
             termo: estado.termo || undefined,
             uf: estado.uf || undefined,
@@ -126,6 +136,7 @@ export function Filtros({ onBuscar, loading }: FiltrosProps) {
             dataInicio: estado.dataInicio,
             dataFim: estado.dataFim,
             fontes: estado.fontes,
+            valorMaximo: valorChip?.max,
         });
     };
 
@@ -134,7 +145,7 @@ export function Filtros({ onBuscar, loading }: FiltrosProps) {
         setEstado(novo);
     };
 
-    const temFiltrosAvancados = !!(estado.uf || estado.area || estado.periodoId === 'custom');
+    const temFiltrosAvancados = !!(estado.uf || estado.area || estado.valorId || estado.periodoId === 'custom');
 
     return (
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
@@ -258,7 +269,25 @@ export function Filtros({ onBuscar, loading }: FiltrosProps) {
 
             {/* Filtros avançados */}
             {avancado && (
-                <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
+                {/* Valor */}
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Valor máx.</span>
+                    {VALOR_CHIPS.map(v => {
+                        const ativo = estado.valorId === v.id;
+                        return (
+                            <button
+                                key={v.id}
+                                type="button"
+                                onClick={() => setEstado(prev => ({ ...prev, valorId: v.id }))}
+                                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${ativo ? 'bg-blue-600 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}
+                            >
+                                {v.label}
+                            </button>
+                        );
+                    })}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
                             <MapPin className="w-3 h-3" /> Estado (UF)
@@ -321,6 +350,7 @@ export function Filtros({ onBuscar, loading }: FiltrosProps) {
                             />
                         </div>
                     </div>
+                </div>
                 </div>
             )}
         </form>

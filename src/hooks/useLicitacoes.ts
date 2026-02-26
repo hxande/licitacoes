@@ -46,6 +46,7 @@ export function useLicitacoes(): UseLicitacoesReturn {
         if (filtros.dataInicio) params.append('dataInicial', filtros.dataInicio.replace(/-/g, ''));
         if (filtros.dataFim) params.append('dataFinal', filtros.dataFim.replace(/-/g, ''));
         if (filtros.fontes && filtros.fontes.length > 0) params.append('fontes', filtros.fontes.join(','));
+        if (filtros.valorMaximo) params.append('valorMaximo', String(filtros.valorMaximo));
 
         params.append('pagina', String(pagina));
         params.append('tamanhoPagina', String(ITENS_POR_PAGINA));

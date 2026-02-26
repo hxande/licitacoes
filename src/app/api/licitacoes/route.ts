@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
         const pagina = parseInt(searchParams.get('pagina') || '1');
         const tamanhoPagina = parseInt(searchParams.get('tamanhoPagina') || '20');
         const termoBusca = searchParams.get('termo')?.toLowerCase().trim();
+        const valorMaximo = searchParams.get('valorMaximo') ? parseFloat(searchParams.get('valorMaximo')!) : undefined;
 
         // Fontes solicitadas — quando não informado, usa apenas PNCP (retrocompatibilidade)
         const fontesParam = searchParams.get('fontes');
@@ -91,6 +92,11 @@ export async function GET(request: NextRequest) {
         // Filtro por UF (PNCP às vezes não filtra corretamente; Sistema S também)
         if (ufSigla) {
             licitacoes = licitacoes.filter(l => l.uf === ufSigla);
+        }
+
+        // Filtro por valor máximo estimado
+        if (valorMaximo) {
+            licitacoes = licitacoes.filter(l => l.valorEstimado !== undefined && l.valorEstimado <= valorMaximo);
         }
 
         // Filtro por área de atuação

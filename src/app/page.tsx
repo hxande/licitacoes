@@ -11,8 +11,11 @@ import { useLicitacoes } from '@/hooks/useLicitacoes';
 import { useFavoritos } from '@/hooks/useFavoritos';
 import { usePipeline } from '@/hooks/usePipeline';
 import { usePerfilEmpresa } from '@/hooks/usePerfilEmpresa';
+import { useAlertas } from '@/hooks/useAlertas';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { Building2, Target, Zap, Heart, BarChart3, UserCog, Sparkles, Kanban, Loader2, FileUp, BrainCircuit, Search } from 'lucide-react';
+import { FiltrosLicitacao } from '@/types/licitacao';
+import { FiltrosAlerta } from '@/types/alerta';
+import { Building2, Target, Zap, Heart, BarChart3, UserCog, Sparkles, Kanban, Loader2, FileUp, BrainCircuit, Search, Bell, Check } from 'lucide-react';
 import { NotificacaoBell } from '@/components/NotificacaoBell';
 
 export default function Home() {
@@ -22,9 +25,12 @@ export default function Home() {
   const { favoritos, toggleFavorito, totalFavoritos, loaded: favoritosLoaded } = useFavoritos();
   const { licitacoes: pipelineLicitacoes, adicionarAoPipeline, carregado: pipelineLoaded } = usePipeline();
   const { perfil, salvarPerfil, limparPerfil, calcularMatch, temPerfil, loaded } = usePerfilEmpresa();
+  const { criarAlerta } = useAlertas();
   const [modalPerfilAberto, setModalPerfilAberto] = useState(false);
   const [modalResumoAberto, setModalResumoAberto] = useState(false);
   const [jaCarregou, setJaCarregou] = useState(false);
+  const [ultimosFiltros, setUltimosFiltros] = useState<FiltrosLicitacao | null>(null);
+  const [alertaSalvo, setAlertaSalvo] = useState(false);
 
   // Criar Set de IDs do pipeline para verificação rápida
   const pipelineIds = useMemo(() =>
@@ -41,7 +47,27 @@ export default function Home() {
 
   const handleBuscar = (filtros: Parameters<typeof buscar>[0]) => {
     setJaCarregou(true);
+    setUltimosFiltros(filtros);
+    setAlertaSalvo(false);
     buscar(filtros);
+  };
+
+  const salvarComoAlerta = async () => {
+    if (!ultimosFiltros) return;
+    const filtrosAlerta: FiltrosAlerta = {};
+    if (ultimosFiltros.termo) filtrosAlerta.palavrasChave = [ultimosFiltros.termo];
+    if (ultimosFiltros.uf) filtrosAlerta.regioes = [ultimosFiltros.uf];
+    if (ultimosFiltros.modalidade) filtrosAlerta.modalidades = [ultimosFiltros.modalidade];
+    if (ultimosFiltros.valorMaximo) filtrosAlerta.valorMax = ultimosFiltros.valorMaximo;
+    const partes: string[] = [];
+    if (ultimosFiltros.termo) partes.push(ultimosFiltros.termo);
+    if (ultimosFiltros.uf) partes.push(ultimosFiltros.uf);
+    if (ultimosFiltros.modalidade === '8') partes.push('Dispensa');
+    else if (ultimosFiltros.modalidade === '6') partes.push('Pregão');
+    if (ultimosFiltros.area) partes.push(ultimosFiltros.area);
+    const nome = partes.length > 0 ? partes.join(' · ') : 'Todas as licitações';
+    await criarAlerta({ nome, filtros: filtrosAlerta, periodicidade: 'diario' });
+    setAlertaSalvo(true);
   };
 
   // Calcular matches para todas as licitações (memoized - calcularMatch is expensive)
@@ -261,6 +287,25 @@ export default function Home() {
                 </div>
               </div>
             </div>
+
+            {/* Salvar busca como alerta */}
+            {!loading && ultimosFiltros && (
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={salvarComoAlerta}
+                  disabled={alertaSalvo}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${alertaSalvo
+                    ? 'bg-green-100 text-green-700 cursor-default'
+                    : 'bg-white border border-gray-200 text-gray-500 hover:bg-orange-50 hover:border-orange-300 hover:text-orange-600'
+                    }`}
+                >
+                  {alertaSalvo
+                    ? <><Check className="w-3.5 h-3.5" /> Alerta salvo!</>
+                    : <><Bell className="w-3.5 h-3.5" /> Salvar alerta</>
+                  }
+                </button>
+              </div>
+            )}
 
             <ListaLicitacoes
               licitacoes={licitacoesComMatch}

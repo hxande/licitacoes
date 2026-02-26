@@ -76,6 +76,11 @@ export function LicitacaoCard({
         }).format(valor);
     };
 
+    const isNova = (dataPublicacao: string | undefined): boolean => {
+        if (!dataPublicacao) return false;
+        return Date.now() - new Date(dataPublicacao).getTime() < 48 * 60 * 60 * 1000;
+    };
+
     const getSituacaoColor = (situacao: string) => {
         const situacaoLower = situacao.toLowerCase();
         if (situacaoLower.includes('aberto') || situacaoLower.includes('aberta')) {
@@ -136,6 +141,11 @@ export function LicitacaoCard({
                             }`}>
                             {licitacao.fonte}
                         </span>
+                        {isNova(licitacao.dataPublicacao) && (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-green-500 text-white">
+                                Novo
+                            </span>
+                        )}
                         {licitacao.modalidade.toLowerCase().includes('dispensa') && (
                             <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 flex items-center gap-1">
                                 <Zap className="w-3 h-3" />
