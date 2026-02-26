@@ -473,6 +473,74 @@ const CATEGORIAS_CONFIG: Record<string, CategoriaConfig> = {
         exclusoes: [],
         scoreMinimo: 3
     },
+
+    'Agropecuária': {
+        termos: [
+            // Peso 3 - Muito específicos
+            { termo: 'defensivo agrícola', peso: 3 },
+            { termo: 'insumo agrícola', peso: 3 },
+            { termo: 'sementes', peso: 3 },
+            { termo: 'fertilizante', peso: 3 },
+            { termo: 'agrotóxico', peso: 3 },
+            // Peso 2 - Moderados
+            { termo: 'gado', peso: 2 },
+            { termo: 'bovino', peso: 2 },
+            { termo: 'suíno', peso: 2 },
+            { termo: 'aves', peso: 2 },
+            { termo: 'piscicultura', peso: 2 },
+            { termo: 'aquicultura', peso: 2 },
+            // Peso 1 - Genéricos
+            { termo: 'agrícola', peso: 1 },
+            { termo: 'rural', peso: 1 },
+            { termo: 'pecuária', peso: 1 },
+            { termo: 'agropecuária', peso: 1 },
+        ],
+        exclusoes: ['maquinário pesado', 'construção'],
+        scoreMinimo: 3
+    },
+
+    'Meio Ambiente': {
+        termos: [
+            // Peso 3 - Muito específicos
+            { termo: 'coleta de resíduos', peso: 3 },
+            { termo: 'licença ambiental', peso: 3 },
+            { termo: 'gestão ambiental', peso: 3 },
+            { termo: 'esgotamento sanitário', peso: 3 },
+            // Peso 2 - Moderados
+            { termo: 'saneamento', peso: 2 },
+            { termo: 'resíduos sólidos', peso: 2 },
+            { termo: 'aterro sanitário', peso: 2 },
+            { termo: 'monitoramento ambiental', peso: 2 },
+            // Peso 1 - Genéricos
+            { termo: 'ambiental', peso: 1 },
+            { termo: 'sustentável', peso: 1 },
+            { termo: 'ecológico', peso: 1 },
+        ],
+        exclusoes: [],
+        scoreMinimo: 3
+    },
+
+    'Energia': {
+        termos: [
+            // Peso 3 - Muito específicos
+            { termo: 'energia solar', peso: 3 },
+            { termo: 'painel fotovoltaico', peso: 3 },
+            { termo: 'geração fotovoltaica', peso: 3 },
+            { termo: 'usina solar', peso: 3 },
+            // Peso 2 - Moderados
+            { termo: 'transformador', peso: 2 },
+            { termo: 'subestação', peso: 2 },
+            { termo: 'gerador', peso: 2 },
+            { termo: 'energia elétrica', peso: 2 },
+            { termo: 'iluminação pública', peso: 2 },
+            // Peso 1 - Genéricos
+            { termo: 'elétrico', peso: 1 },
+            { termo: 'energético', peso: 1 },
+            { termo: 'potência', peso: 1 },
+        ],
+        exclusoes: ['manutenção predial', 'ar condicionado'],
+        scoreMinimo: 3
+    },
 };
 
 // Extrai a área de atuação principal da licitação usando sistema de scoring

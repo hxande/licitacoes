@@ -120,5 +120,8 @@ export const AREAS_ATUACAO = [
     'Comunicação e Marketing',
     'Jurídico e Contábil',
     'Recursos Humanos',
+    'Agropecuária',
+    'Meio Ambiente',
+    'Energia',
     'Outros',
 ];
