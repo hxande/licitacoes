@@ -1,90 +1,108 @@
-Manual SQL migration (if you cannot run `prisma migrate deploy`)
+# Licitaly
 
-If `prisma migrate` cannot run in your environment, you can apply the SQL directly. I added a SQL migration file at `prisma/migrations/0001_init/migration.sql` that creates the required tables.
+Plataforma para busca e análise de licitações públicas brasileiras. Agrega oportunidades do PNCP, SESI, SENAI e SENAC em uma interface unificada, com análise por IA para avaliação de compatibilidade, risco e proposta.
 
-Apply it with `psql` (example):
+## Stack
 
-```bash
-# from a machine with network access to the database
-export DATABASE_URL="${LICITACOES__POSTGRES_URL}"
-# If your connection string is in LICITACOES__POSTGRES_URL, you can parse it for psql or use psql directly if your DB access is set.
-psql "$LICITACOES__POSTGRES_URL" -f prisma/migrations/0001_init/migration.sql
-```
+- **Frontend/Backend**: Next.js 14 (App Router)
+- **Banco de dados**: PostgreSQL via Prisma ORM (PgBouncer para serverless)
+- **IA**: Anthropic Claude + Google Gemini via LangChain
+- **Auth**: HMAC SHA-256 tokens + PBKDF2 (custom, sem NextAuth)
+- **Deploy**: Vercel + GitHub Actions para migrações
 
-Or run it in a CI step using the same command against the production DB before Vercel deploy.
+## Pré-requisitos
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+- Node.js 18+
+- PostgreSQL (ou Supabase/Neon)
 
-## Getting Started
+## Configuração local
 
-First, run the development server:
-
-# or
-pnpm dev
-# or
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-This repo includes a small example Server Action that writes a `comment` into Postgres via the `@neondatabase/serverless` driver.
-
-- Page: `app/neon-example/page.tsx`
-- Requirements: set `DATABASE_URL` or `POSTGRES_URL` in your environment (or Vercel envs)
-- Create table (Neon SQL editor):
-
-```sql
-CREATE TABLE IF NOT EXISTS comments (comment TEXT);
-```
-
-- Run locally:
 ```bash
 npm install
-export $(grep -v '^#' .env.local | xargs)
-npm run dev
-# then open http://localhost:3000/neon-example
 ```
 
-## Prisma / Postgres
+Crie `.env.local` com as variáveis abaixo:
 
-This project now uses Prisma as ORM and expects a Postgres database for persistence.
+```env
+# Banco de dados
+LICITACOES__POSTGRES_URL=postgresql://user:pass@host:6543/db?pgbouncer=true
+LICITACOES__POSTGRES_URL_NON_POOLING=postgresql://user:pass@host:5432/db
 
-- Ensure `LICITACOES__POSTGRES_URL` is set in `.env.local`.
-- Install dependencies: `npm install`.
-- Generate Prisma client: `npm run prisma:generate`.
-- Apply migrations or push schema: `npm run prisma:migrate` (or `npx prisma db push`).
+# Auth
+AUTH_SECRET=<string aleatória segura>
 
-Vercel deployment notes
+# IA
+ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_API_KEY=...
 
-- In the Vercel project settings add the environment variable `LICITACOES__POSTGRES_URL` (and any other needed vars) in both Preview and Production (and optionally Development) scopes.
-- Use this Build Command on Vercel:
+# Email (nodemailer)
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_USER=...
+EMAIL_PASS=...
+EMAIL_FROM=noreply@example.com
+```
 
 ```bash
-npm run vercel-build
+npm run prisma:generate   # Gera o Prisma client
+npm run prisma:migrate    # Aplica migrações
+npm run dev               # Inicia em localhost:3000
 ```
 
-This ensures `prisma generate` runs before `next build` and the generated client is available at build/runtime.
+## Comandos
 
-- Migrations: for production you should run migrations against the production DB before or during deployment. Options:
-	- Use `prisma migrate deploy` from a CI step (recommended) against the production DB.
-	- Or run `npx prisma db push` to push the schema (less safe for production).
+```bash
+npm run dev              # Dev server (localhost:3000)
+npm run build            # Build de produção
+npm run lint             # ESLint
+npm run prisma:generate  # Gera Prisma client
+npm run prisma:migrate   # Aplica migrações (prisma migrate deploy)
+npm run vercel-build     # Build completo para Vercel (migrate + generate + build)
+npx tsx scripts/<name>.ts  # Utilitários (ex: carga-historico.ts)
+```
 
-Example minimal Vercel env vars to set (copy values from your `.env.local`):
+## Arquitetura
 
-- `LICITACOES__POSTGRES_URL`
-- `LICITACOES__POSTGRES_PRISMA_URL` (optional)
-- Any API keys (e.g. `GOOGLE_API_KEY`, Supabase keys) used by your app
+```
+src/
+├── app/
+│   ├── page.tsx              # Home / busca de licitações
+│   ├── dashboard/            # Painel do usuário
+│   ├── pipeline/             # Kanban de oportunidades
+│   ├── recomendacoes/        # Recomendações por IA
+│   ├── monitoramento/        # Pipeline + notificações
+│   ├── perfil/               # Perfil da empresa
+│   └── api/                  # ~22 endpoints REST
+├── services/
+│   ├── pncp.ts               # PNCP (principal fonte — gov.br)
+│   ├── sistema-s.ts          # SESI + SENAI
+│   ├── senac.ts              # SENAC
+│   ├── historico.ts          # Contratos históricos
+│   └── notificacao-email.ts  # Envio de alertas por email
+├── hooks/                    # React hooks (useAuth, useLicitacoes, etc.)
+├── lib/                      # Utilitários servidor (prisma, auth, email)
+├── components/               # Componentes React
+└── types/                    # Interfaces TypeScript
+```
 
-After these are set, deploy on Vercel normally — the build will generate Prisma client and Next build will succeed.
+## Fontes de dados
+
+| Fonte | API | Cobertura |
+|---|---|---|
+| PNCP | `pncp.gov.br/api/consulta/v1` | Federal + estados + municípios (Lei 14.133/2021) |
+| SESI / SENAI | `sistematransparenciaweb.com.br` | Indústria (Sistema S) |
+| SENAC | `sistematransparenciaweb.com.br` | Comércio (Sistema S) |
+
+## Deploy no Vercel
+
+1. Configure as variáveis de ambiente no painel do Vercel (Production + Preview)
+2. Use o Build Command: `npm run vercel-build`
+3. Migrações são aplicadas automaticamente via GitHub Actions (`.github/workflows/prisma-migrate-and-deploy.yml`)
+
+### Migrações manuais
+
+Se precisar aplicar a migração inicial diretamente:
+
+```bash
+psql "$LICITACOES__POSTGRES_URL_NON_POOLING" -f prisma/migrations/0001_init/migration.sql
+```

@@ -21,11 +21,11 @@ npx tsx scripts/<name>.ts  # Run utility scripts (e.g., carga-historico.ts)
 ## Architecture
 
 ### App Router (`src/app/`)
-- **Pages**: `page.tsx` (home/dashboard), `login/`, `cadastro/`, `dashboard/`, `perfil/`, `pipeline/`, `recomendacoes/`, `verificar-email/`
-- **API routes** (`src/app/api/`): ~21 REST endpoints including auth (login, registro, logout, me, verificar-email), licitacoes, favoritos, pipeline, dashboard, alertas, perfil-empresa, checklists, and several AI-powered analysis endpoints (analisar-edital, analisar-match, analisar-risco, analisar-mercado, resumir-edital, gerar-proposta, agente-recomendacao)
+- **Pages**: `page.tsx` (home/busca), `login/`, `cadastro/`, `dashboard/`, `perfil/`, `pipeline/`, `recomendacoes/`, `monitoramento/`, `verificar-email/`
+- **API routes** (`src/app/api/`): ~22 REST endpoints including auth (login, registro, logout, me, verificar-email), licitacoes, favoritos, pipeline, dashboard, alertas, perfil-empresa, checklists, notificacoes, and several AI-powered analysis endpoints (analisar-edital, analisar-match, analisar-risco, analisar-mercado, resumir-edital, gerar-proposta, agente-recomendacao)
 
 ### Core Layers
-- **`src/services/`**: External integrations. `pncp.ts` is the main data source — fetches from Brazil's PNCP API (`pncp.gov.br/api/consulta/v1`) with a scoring-based categorization system (12 business areas, 13 modalities). `historico.ts` handles historical contract queries.
+- **`src/services/`**: External integrations. `pncp.ts` is the main data source — fetches from Brazil's PNCP API (`pncp.gov.br/api/consulta/v1`) with a scoring-based categorization system (15 business areas, 13 modalities). `sistema-s.ts` fetches SESI/SENAI from `sistematransparenciaweb.com.br`. `senac.ts` fetches SENAC from the same Sistema S portal. `historico.ts` handles historical contract queries. `notificacao-email.ts` sends email alerts.
 - **`src/hooks/`**: Custom React hooks that encapsulate all client-side data fetching and state management (useAuth, useLicitacoes, useFavoritos, usePipeline, usePerfilEmpresa, useChecklist, useAlertas, useAgenteRecomendacao).
 - **`src/lib/`**: Server utilities — `prisma.ts` (singleton with reconnect/retry logic), `auth.ts` (HMAC SHA-256 tokens, PBKDF2 password hashing, session management), `email.ts` (nodemailer), `response.ts` (API response helpers).
 - **`src/components/`**: React components (LicitacaoCard, ListaLicitacoes, ModalAnaliseIA, ModalAnaliseMercado, AnaliseRiscoView, ChecklistView, AgenteRecomendacao, etc.).
